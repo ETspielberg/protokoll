@@ -6,7 +6,7 @@
   "apps": [
     {
       "root": "src",
-      "outDir": "dist",
+      "outDir": "C:\\Development\\workspace\\protokoll-frontend\\src\\main\\resources\\static",
       "assets": [
         "assets",
         "favicon.ico"
@@ -19,7 +19,12 @@
       "testTsconfig": "tsconfig.spec.json",
       "prefix": "app",
       "styles": [
-        "styles.css"
+        "assets/css/bootstrap.css",
+        "assets/css/ie10-viewport-bug-workaround.css",
+        "assets/css/jumbotron.css",
+        "../node_modules/font-awesome/css/font-awesome.css",
+        "../node_modules/primeng/resources/themes/omega/theme.css",
+        "../node_modules/primeng/resources/primeng.min.css"
       ],
       "scripts": [],
       "environmentSource": "environments/environment.ts",

@@ -61,6 +61,7 @@
   <img src="../assets/img/loading_newtons_cradle.gif" alt="Loading..." style="width:304px;height:228px;">
 </p-dialog>
 
+<p-messages [(value)]="messages"></p-messages>
 <div *ngIf="!primaryLoad" class="container-fluid">
   <div class="col-md-12" style="padding: 15px;">
     <div class="alert alert-warning" style="text-align: center;" *ngIf="!manifestationsFound">

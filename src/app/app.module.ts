@@ -2,7 +2,8 @@ import {AppComponent} from './app.component';
 import {RouterModule} from '@angular/router';
 import {NgModule} from '@angular/core';
 import {DataTableModule} from 'primeng/components/datatable/datatable';
-import {InputSwitchModule, SelectButtonModule, TabMenuModule, ToggleButtonModule, DialogModule, InputTextModule, ButtonModule,TooltipModule} from 'primeng/primeng';
+import {InputSwitchModule, SelectButtonModule, TabMenuModule, ToggleButtonModule, DialogModule, InputTextModule,
+  ButtonModule, TooltipModule, MessageModule, MessagesModule} from 'primeng/primeng';
 import {ChartModule} from 'angular2-highcharts';
 import { HighchartsStatic } from 'angular2-highcharts/dist/HighchartsService';
 import {FormsModule} from '@angular/forms';
@@ -13,6 +14,7 @@ import {HttpClientModule} from '@angular/common/http';
 import {GetterService} from './service/getter.service';
 import {BrowserModule} from '@angular/platform-browser';
 import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
+import {AnalyzerService} from './service/analyzer.service';
 
 
 export function highchartsFactory() {
@@ -28,6 +30,8 @@ export function highchartsFactory() {
     ButtonModule,
     TooltipModule,
     InputTextModule,
+    MessagesModule,
+    MessageModule,
     BrowserAnimationsModule,
     BrowserModule,
     CommonModule,
@@ -44,7 +48,7 @@ export function highchartsFactory() {
   declarations: [AppComponent],
   bootstrap: [AppComponent],
   exports: [AppComponent],
-  providers: [GetterService, {provide: HighchartsStatic,
+  providers: [GetterService, AnalyzerService, {provide: HighchartsStatic,
     useFactory: highchartsFactory}]
 })
 

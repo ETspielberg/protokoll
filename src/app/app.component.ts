@@ -2,7 +2,7 @@ import {Component, OnInit} from '@angular/core';
 import {ProtokollRequest} from './model/ProtokollRequest';
 import {Manifestation} from './model/Manifestation';
 import {GetterService} from './service/getter.service';
-import {DataTable} from 'primeng/primeng';
+import {DataTable, Message} from 'primeng/primeng';
 import {Item} from './model/Item';
 import {Event} from './model/Event';
 
@@ -12,7 +12,7 @@ import {Dataset} from './model/Dataset';
 import {Datapoint} from './model/Datapoint';
 import {AnalyzerService} from './service/analyzer.service';
 import {Stockcontrol} from './model/Stockcontrol';
-import {Eventanalysis} from "./model/Eventanalysis";
+import {Eventanalysis} from './model/Eventanalysis';
 
 @Component({
   selector: 'app-root',
@@ -26,6 +26,8 @@ export class AppComponent implements OnInit {
   }
 
   busy: boolean;
+
+  messages: Message[];
 
   manifestations: Manifestation[];
 
@@ -121,6 +123,7 @@ export class AppComponent implements OnInit {
       error => {
         this.busy = false;
         this.primaryLoad = false;
+        this.messages.push({severity: 'error', summary: 'Fehler: ', detail: 'Es konnten keine Auflagen gefunden werden.  Bitte eine gültige Signatur eingeben.'});
       }
     );
   }

@@ -94,7 +94,7 @@
       <h3>
         Exemplarübersicht
       </h3>
-      <button type="button" pButton (click)="exportTable(dt)" label="Export" icon="fa-table"></button>
+      <button class="ui-button-success" type="button" pButton (click)="exportTable(dt)" label="Export" icon="fa-table"></button>
       <p-dataTable #dt [value]="selectedItems" [rows]="10" [paginator]="true" [rowsPerPageOptions]="[10,20,50]">
         <p-column field="collection" header="Standort" [sortable]="true" [filter]="true"
                   filterPlaceholder="Filter"></p-column>
@@ -113,8 +113,8 @@
       <h3>
         Ereignisprotokoll
       </h3>
-      <button type="button" pButton (click)="exportTable(di)" label="Export" icon="fa-table"></button>
-      <p-dataTable #di [value]="selectedEvents" [rows]="10" [paginator]="true" [rowsPerPageOptions]="[10,20,50]">
+      <button class="ui-button-success" type="button" pButton (click)="exportTable(di)" label="Export" icon="fa-table"></button>
+      <p-dataTable #di [value]="selectedEvents" [rows]="10" [paginator]="true" [rowsPerPageOptions]="[10,20,50]" sortField="date" [sortOrder]="-1">
         <p-column field="date" header="Datum von" [filter]="true" filterPlaceholder="Filter"></p-column>
         <p-column field="endEvent.date" header="Datum bis" [sortable]="true" [filter]="true"
                   filterPlaceholder="Filter"></p-column>

@@ -1,4 +1,4 @@
-<div style="padding: 10px;" class="jumbotron">
+<div class="jumbotron query-bar">
   <div class="container">
     <h1 style="padding: 20px;" *ngIf="primaryLoad">
       Ausleihprotokoll
@@ -6,53 +6,31 @@
     <p style="padding: 10px;" *ngIf="primaryLoad">Alle Details zu einem Titel</p>
     <div class="ui-g ui-fluid">
       <form (submit)="getFullManifestations()" (keyup.enter)="getFullManifestations()">
-      <div class="ui-g-12 ui-md-3">
+        <div class="ui-g-12 ui-lg-3">
         <span class="ui-float-label">
-        <input id="float-input" type="text" size="30" pInputText [(ngModel)]="protokollRequest.shelfmark" [ngModelOptions]="{standalone: true}" autofocus
+        <input id="float-input" type="text" size="30" pInputText [(ngModel)]="protokollRequest.shelfmark"
+               [ngModelOptions]="{standalone: true}" autofocus
                pTooltip="Bitte Signatur eingeben" tooltipPosition="bottom">
         <label for="float-input">Signatur</label>
         </span>
-      </div>
-      <div class="ui-g-12 ui-md-3">
+        </div>
+        <div class="ui-g-12 ui-lg-3">
         <span class="ui-float-label">
         <input [(ngModel)]="protokollRequest.collections" id="collections-primary" pInputText name="collections"
-               size="20" pTooltip="z.B. E31, E3, D45, E (mehrere durch Leerzeichen trennen)" tooltipPosition="bottom" [ngModelOptions]="{standalone: true}"/>
+               size="20" pTooltip="z.B. E31, E3, D45, E (mehrere durch Leerzeichen trennen)" tooltipPosition="bottom"
+               [ngModelOptions]="{standalone: true}"/>
         <label for="collections-primary">Standorte</label>
         </span>
-      </div>
-      <div class="ui-g-12 ui-md-3">
-        <p-toggleButton onLabel="Nur diese Auflage" offLabel="Alle Auflagen"
-                        [(ngModel)]="protokollRequest.exact" [ngModelOptions]="{standalone: true}"></p-toggleButton>
-      </div>
-      <div class="ui-g-12 ui-md-3">
-        <button pButton type="button" class="ui-button-success" (click)="getFullManifestations()" icon="fa-search"
-                label="Abfrage starten"></button>
-      </div>
+        </div>
+        <div class="ui-g-12 ui-lg-3">
+          <p-toggleButton onLabel="Nur diese Auflage" offLabel="Alle Auflagen"
+                          [(ngModel)]="protokollRequest.exact" [ngModelOptions]="{standalone: true}"></p-toggleButton>
+        </div>
+        <div class="ui-g-12 ui-lg-3">
+          <button pButton type="button" class="ui-button-success" (click)="getFullManifestations()" icon="fa-search"
+                  label="Abfrage starten"></button>
+        </div>
       </form>
-    </div>
-    <div *ngIf="manifestationsFound" class="ui-g ui-fluid">
-      <div class="ui-g-12 ui-md-8">
-        <table>
-          <tr>
-            <th><label>Standorte:</label></th>
-            <th style="padding: 5px;" *ngFor="let m of uniqueCollections">
-              <p-toggleButton [(ngModel)]="filterList[m]" (onChange)="update()" onLabel="{{m}}"
-                              offLabel="{{m}}"></p-toggleButton>
-            </th>
-          </tr>
-        </table>
-      </div>
-      <div class="ui-g-12 ui-md-4">
-        <table>
-          <tr>
-            <th><label>Materialien:</label></th>
-            <th style="padding: 5px;" *ngFor="let m of uniqueMaterials">
-              <p-toggleButton [(ngModel)]="filterList[m]" (onChange)="update()" onLabel="{{m}}"
-                              offLabel="{{m}}"></p-toggleButton>
-            </th>
-          </tr>
-        </table>
-      </div>
     </div>
   </div>
 </div>
@@ -62,69 +40,133 @@
 </p-dialog>
 
 <p-messages [(value)]="messages"></p-messages>
-<div *ngIf="!primaryLoad" class="container-fluid">
-  <div class="col-md-12" style="padding: 15px;">
-    <div class="alert alert-warning" style="text-align: center;" *ngIf="!manifestationsFound">
-      Leider konnten keine Auflagen gefunden werden. Bitte eine gültige Signatur eingeben.
-    </div>
-  </div>
 
-  <div class="col-sm-2 col-md-2 sidebar" *ngIf="manifestationsFound">
-    <ul class="nav nav-sidebar">
-      <li *ngFor="let m of manifestations">
-        <div class="well well-sm" (click)="toggleSelection(m)" [class.well-active]="filterList[m.titleID]">
-          <p>{{m.edition}}. Auflage: {{m.shelfmark}}</p>
-          {{m.bibliographicInformation.authors}}:
-          {{m.bibliographicInformation.title}}, <b>{{m.bibliographicInformation.year}}</b>.
-        </div>
-      </li>
-    </ul>
-  </div>
-
-  <div class="col-md-10" *ngIf="selectedManifestations.length > 0">
-    <div class="col-md-12">
-      <chart [options]="options" *ngIf="manifestationsFound" style="display: block"></chart>
-      <div class="col-md-8 col-md-offset-4">
-        <p-inputSwitch id="usergroups" onLabel="Überblick zeigen" offLabel="Nutzgruppen zeigen" (onChange)="update()"
-                       [(ngModel)]="showUsergroups"></p-inputSwitch>
+<div *ngIf="!primaryLoad" class="container-fluid content">
+  <div class="ui-g content">
+    <p-messages [(value)]="messages"></p-messages>
+    <div class="ui-g-12" style="padding: 15px;">
+      <div class="alert alert-warning" style="text-align: center;" *ngIf="!manifestationsFound">
+        Leider konnten keine Auflagen gefunden werden. Bitte eine gültige Signatur eingeben.
       </div>
     </div>
+    <div class="ui-g-12">
 
-    <div class="col-md-12" *ngIf="selectedItems.length > 0">
-      <h3>
-        Exemplarübersicht
-      </h3>
-      <button class="ui-button-success" type="button" pButton (click)="exportTable(dt)" label="Export" icon="fa-table"></button>
-      <p-dataTable #dt [value]="selectedItems" [rows]="10" [paginator]="true" [rowsPerPageOptions]="[10,20,50]">
-        <p-column field="collection" header="Standort" [sortable]="true" [filter]="true"
-                  filterPlaceholder="Filter"></p-column>
-        <p-column field="shelfmark" header="Signatur" [sortable]="true" [filter]="true"
-                  filterPlaceholder="Filter"></p-column>
-        <p-column field="material" header="Medium" [sortable]="true" [filter]="true"
-                  filterPlaceholder="Filter"></p-column>
-        <p-column field="events.length" header="Ausleihen" [sortable]="true" [filter]="true"
-                  filterPlaceholder="Filter"></p-column>
-        <p-column field="itemStatus" header="Status" [sortable]="true" [filter]="true"
-                  filterPlaceholder="Filter"></p-column>
-      </p-dataTable>
-    </div>
+      <div class="ui-g-2 sidebar" *ngIf="manifestationsFound">
+        <div class="ui-g-12">
+          <div class="tile-sidebar">
+            <h3 (click)="toggleShow('editions')">Auflagen <span class="fas fa-arrow-circle-left"></span></h3>
+            <div *ngIf="show['editions']" class="ui-g">
+              <div *ngFor="let m of manifestations" class="ui-g-12">
+                <p-checkbox [(ngModel)]="filterList[m.titleID]" binary="true" (onChange)="update()"
+                            label="{{m.edition}}. Auflage: {{m.shelfmark}}"
+                            pTooltip="{{m.bibliographicInformation.authors}}:
+          {{m.bibliographicInformation.title}}, {{m.bibliographicInformation.year}}."></p-checkbox>
+              </div>
+            </div>
+            <h3 (click)="toggleShow('collections')">Standorte</h3>
+            <div *ngIf="show['collections']" class="ui-g">
+              <div *ngFor="let m of uniqueCollections" class="ui-g-12">
+                <p-checkbox [(ngModel)]="filterList[m]" binary="true" (onChange)="update()" label="{{m}}"></p-checkbox>
+              </div>
+            </div>
+            <h3 (click)="toggleShow('materials')">Materialien</h3>
+            <div *ngIf="show['materials']" class="ui-g">
+              <div *ngFor="let m of uniqueMaterials" class="ui-g-12">
+                <p-checkbox [(ngModel)]="filterList[m]" binary="true" (onChange)="update()" label="{{m}}"></p-checkbox>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
 
-    <div class="col-md-12" *ngIf="selectedEvents.length > 0">
-      <h3>
-        Ereignisprotokoll
-      </h3>
-      <button class="ui-button-success" type="button" pButton (click)="exportTable(di)" label="Export" icon="fa-table"></button>
-      <p-dataTable #di [value]="selectedEvents" [rows]="10" [paginator]="true" [rowsPerPageOptions]="[10,20,50]" sortField="date" [sortOrder]="-1">
-        <p-column field="date" header="Datum von" [filter]="true" filterPlaceholder="Filter"></p-column>
-        <p-column field="endEvent.date" header="Datum bis" [sortable]="true" [filter]="true"
-                  filterPlaceholder="Filter"></p-column>
-        <p-column field="duration" header="Tage" [sortable]="true" [filter]="true"
-                  filterPlaceholder="Filter"></p-column>
-        <p-column field="type" header="Ereignis" [sortable]="true" [filter]="true"
-                  filterPlaceholder="Filter"></p-column>
-        <p-column field="borrowerStatus" header="Benutzer" [sortable]="true" [filter]="true"
-                  filterPlaceholder="Filter"></p-column>
-      </p-dataTable>
+      <div class="ui-g-10 ui-g-offset-2" *ngIf="selectedManifestations.length > 0">
+        <div class="ui-g">
+          <div class="ui-g-12">
+            <div class="tile">
+              <h2 (click)="toggleShow('bibliography')">Bibliographische Angaben</h2>
+              <p-accordion *ngIf="show['bibliography']" [multiple]="true">
+                <div *ngFor="let m of manifestations">
+                  <p-accordionTab header="{{m.edition}}. Auflage">
+                    {{m.bibliographicInformation.authors}}:
+                    {{m.bibliographicInformation.title}}, {{m.bibliographicInformation.year}}.<br />
+                    <a class="btn btn-success"
+                       href="'https://primo.ub.uni-due.de/UDE:UDEALEPH{' + {{m.bibliographicInformation.alephIndentifier}} + '}'"
+                       target="_blank" role="button">Titel in Primo anzeigen</a>
+                  </p-accordionTab>
+                </div>
+              </p-accordion>
+            </div>
+          </div>
+          <div class="ui-g-12">
+            <div class="tile">
+              <div class="ui-g-12">
+                <h2 (click)="toggleShow('graph')">Überblick</h2>
+                <chart [options]="options" *ngIf="manifestationsFound && show['graph']" style="display: block"></chart>
+              </div>
+              <div *ngIf="manifestationsFound && show['graph']" class="ui-g-12">
+                <p-inputSwitch id="usergroups" onLabel="Überblick zeigen" offLabel="Nutzergruppen zeigen"
+                               (onChange)="update()"
+                               [(ngModel)]="showUsergroups"></p-inputSwitch>
+              </div>
+            </div>
+          </div>
+          <div class="ui-g-12" *ngIf="selectedItems.length > 0">
+            <div class="tile">
+              <h2 (click)="toggleShow('items')">
+                Exemplarübersicht
+              </h2>
+              <p-dataTable *ngIf="show['items']" #dt [value]="selectedItems" [rows]="10" [paginator]="true"
+                           [rowsPerPageOptions]="[10,20,50]">
+                <p-header>
+                  <div class="ui-helper-clearfix">
+                    <button style="float: left;" class="ui-button-success" type="button" pButton
+                            (click)="dt.exportCSV()"
+                            label="Export" icon="fa-table"></button>
+                  </div>
+                </p-header>
+                <p-column field="collection" header="Standort" [sortable]="true" [filter]="true"
+                          filterPlaceholder="Filter"></p-column>
+                <p-column field="shelfmark" header="Signatur" [sortable]="true" [filter]="true"
+                          filterPlaceholder="Filter"></p-column>
+                <p-column field="material" header="Medium" [sortable]="true" [filter]="true"
+                          filterPlaceholder="Filter"></p-column>
+                <p-column field="events.length" header="Ausleihen" [sortable]="true" [filter]="true"
+                          filterPlaceholder="Filter"></p-column>
+                <p-column field="itemStatus" header="Status" [sortable]="true" [filter]="true"
+                          filterPlaceholder="Filter"></p-column>
+              </p-dataTable>
+            </div>
+          </div>
+
+          <div class="ui-g-12" *ngIf="selectedEvents.length > 0">
+            <div class="tile">
+              <h2 (click)="toggleShow('events')">
+                Ereignisprotokoll
+              </h2>
+              <p-dataTable *ngIf="show['events']" #di [value]="selectedEvents" [rows]="10" [paginator]="true"
+                           [rowsPerPageOptions]="[10,20,50]" sortField="date" [sortOrder]="-1">
+                <p-header>
+                  <div class="ui-helper-clearfix">
+                    <button style="float: left;" class="ui-button-success" type="button" pButton
+                            (click)="di.exportCSV()"
+                            label="Export" icon="fa-table"></button>
+                  </div>
+                </p-header>
+                <p-column field="date" header="Datum von" [sortable]="true" [filter]="true"
+                          filterPlaceholder="Filter"></p-column>
+                <p-column field="endEvent.date" header="Datum bis" [sortable]="true" [filter]="true"
+                          filterPlaceholder="Filter"></p-column>
+                <p-column field="duration" header="Tage" [sortable]="true" [filter]="true"
+                          filterPlaceholder="Filter"></p-column>
+                <p-column field="type" header="Ereignis" [sortable]="true" [filter]="true"
+                          filterPlaceholder="Filter"></p-column>
+                <p-column field="borrowerStatus" header="Benutzer" [sortable]="true" [filter]="true"
+                          filterPlaceholder="Filter"></p-column>
+              </p-dataTable>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </div>

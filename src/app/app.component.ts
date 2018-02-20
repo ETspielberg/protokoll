@@ -1,4 +1,4 @@
-import {Component, OnInit} from '@angular/core';
+import {Component, OnDestroy, OnInit} from '@angular/core';
 import {ProtokollRequest} from './model/ProtokollRequest';
 import {Manifestation} from './model/Manifestation';
 import {GetterService} from './service/getter.service';
@@ -6,13 +6,14 @@ import {DataTable, Message} from 'primeng/primeng';
 import {Item} from './model/Item';
 import {Event} from './model/Event';
 
-import {ActivatedRoute} from '@angular/router';
+import {ActivatedRoute, Params, Router} from '@angular/router';
 import {Option} from './model/Option';
 import {Dataset} from './model/Dataset';
 import {Datapoint} from './model/Datapoint';
 import {AnalyzerService} from './service/analyzer.service';
-import {Stockcontrol} from './model/Stockcontrol';
 import {Eventanalysis} from './model/Eventanalysis';
+import {Subscription} from 'rxjs/Subscription';
+import 'rxjs/add/operator/switchMap';
 
 @Component({
   selector: 'app-root',
@@ -20,9 +21,12 @@ import {Eventanalysis} from './model/Eventanalysis';
   providers: [GetterService]
 })
 
-export class AppComponent implements OnInit {
+export class AppComponent implements OnInit, OnDestroy  {
 
-  constructor(private getterService: GetterService, private route: ActivatedRoute, private analyzrService: AnalyzerService) {
+  constructor(private getterService: GetterService,
+              private outer: Router,
+              private route: ActivatedRoute,
+              private analyzrService: AnalyzerService) {
   }
 
   busy: boolean;
@@ -47,9 +51,9 @@ export class AppComponent implements OnInit {
 
   private uniqueMaterials: string[];
 
-  protokollRequest: ProtokollRequest;
+  public protokollRequest: ProtokollRequest;
 
-  selectedManifestations: Manifestation[];
+  public selectedManifestations: Manifestation[];
 
   private selectedEvents: Event[];
 
@@ -67,35 +71,25 @@ export class AppComponent implements OnInit {
 
   public eventanalysis: Eventanalysis;
 
+  public show: Map<string, boolean>;
+
   public isAnalyzed: boolean;
 
+  private subscription: Subscription;
+
   ngOnInit(): void {
-    this.yearsOfRequests = 2;
-    this.yearsOfLoans = 5;
-    this.primaryLoad = true;
+
     this.resetVariables();
-    let shelfmarkFromRequest = '';
-    let collectionsFromRequest = '';
-    let materialsFromRequest = '';
-    this.route.queryParams.subscribe(params =>
-      shelfmarkFromRequest = params['shelfmark']);
-    this.route.queryParams.subscribe(params =>
-      collectionsFromRequest = params['collections']);
-    this.route.queryParams.subscribe(params =>
-      materialsFromRequest = params['materials'], error => materialsFromRequest = '');
-    console.log(shelfmarkFromRequest);
-    if (!(typeof shelfmarkFromRequest === 'undefined' || shelfmarkFromRequest === '')) {
-      this.protokollRequest.shelfmark = shelfmarkFromRequest;
-    }
-    if (!(typeof collectionsFromRequest === 'undefined' || collectionsFromRequest === '')) {
-      this.protokollRequest.collections = collectionsFromRequest;
-    }
-    if (!(typeof materialsFromRequest === 'undefined' || materialsFromRequest === '')) {
-      this.protokollRequest.materials = materialsFromRequest;
-    }
-    if (this.protokollRequest.shelfmark !== '') {
-      this.getFullManifestations();
-    }
+    this.route.queryParams.subscribe( (params: Params) => {
+      if (params['shelfmark'] !== undefined) {this.protokollRequest.shelfmark = params['shelfmark']; }
+      if (params['exact'] !== undefined) {this.protokollRequest.exact = ('true' ===  params['exact']); }
+      if (params['collections'] !== undefined) {this.protokollRequest.collections = params['collections']; }
+      if (params['materials'] !== undefined) {this.protokollRequest.shelfmark = params['materials']; }
+      if (this.protokollRequest.shelfmark !== '') {
+        this.getFullManifestations();
+      }
+      }
+    );
   }
 
   resetVariables() {
@@ -108,13 +102,24 @@ export class AppComponent implements OnInit {
     this.protokollRequest = new ProtokollRequest('', '', '', false);
     this.manifestationsFound = false;
     this.filterList = new Map<string, boolean>();
+    this.show = new Map<string, boolean>();
+    this.show['items'] = true;
+    this.show['events'] =  true;
+    this.show['editions'] = true;
+    this.show['collections'] =  true;
+    this.show['materials'] = true;
+    this.show['graph'] = true;
+    this.show['bibliography'] = true;
+    this.yearsOfRequests = 2;
+    this.yearsOfLoans = 5;
+    this.primaryLoad = true;
   }
 
   getFullManifestations() {
     this.isAnalyzed = false;
     this.busy = true;
     this.manifestations = [];
-    this.getterService.getFullManifestation(this.protokollRequest).subscribe(
+    this.getterService.getFullManifestation(this.protokollRequest.shelfmark, this.protokollRequest.exact).subscribe(
       data => {
         this.manifestations = data;
         this.initializeLists();
@@ -164,10 +169,11 @@ export class AppComponent implements OnInit {
       } else {
         individualCollections.push(this.protokollRequest.collections);
       }
+      console.log(this.uniqueCollections);
       for (const f of this.uniqueCollections) {
         let fitting = false;
         for (const m of individualCollections) {
-          if (f.startsWith(m.trim())) {
+          if (f.startsWith(m.trim().toUpperCase())) {
             fitting = true;
           }
         }
@@ -278,17 +284,16 @@ export class AppComponent implements OnInit {
     }
   }
 
-  exportTable(dt: DataTable) {
-    dt.exportCSV();
-  }
-
-  toggleSelection(manifestation: Manifestation) {
-    this.filterList[manifestation.titleID] = !this.filterList[manifestation.titleID];
-    this.update();
+  toggleShow(part: string) {
+    this.show[part] = !this.show[part] ;
   }
 
   calculateAnalysis() {
     this.eventanalysis = this.analyzrService.calculateAnalsis(this.plotData, this.yearsOfLoans, this.yearsOfRequests);
     this.isAnalyzed = true;
+  }
+
+  ngOnDestroy() {
+    this.subscription.unsubscribe();
   }
 }

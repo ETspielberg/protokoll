@@ -6,7 +6,7 @@ export class BibliographicInformation {
 
     constructor(
       public docNumber: string,
-        public isbn: string,
+      public isbn: string,
       public doi: string,
       public authors: string[],
       public title: string,
@@ -18,6 +18,7 @@ export class BibliographicInformation {
       public series: string,
       public volume: number,
       public keywords: string[],
-      public type: string
+      public type: string,
+      public alephIdentifier: string
     ) {}
 }

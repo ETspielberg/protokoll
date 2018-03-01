@@ -36,7 +36,7 @@
 </div>
 
 <p-dialog header="Daten werden abgerufen" [modal]="true" [closable]="false" [(visible)]="busy">
-  <img src="../assets/img/loading_newtons_cradle.gif" alt="Loading..." style="width:304px;height:228px;">
+  <img src="/assets/img/loading_newtons_cradle.gif" alt="Loading..." style="width:304px;height:228px;">
 </p-dialog>
 
 <p-messages [(value)]="messages"></p-messages>
@@ -54,7 +54,7 @@
       <div class="ui-g-2 sidebar" *ngIf="manifestationsFound">
         <div class="ui-g-12">
           <div class="tile-sidebar">
-            <h3 (click)="toggleShow('editions')">Auflagen <span class="fas fa-arrow-circle-left"></span></h3>
+            <h3 (click)="toggleShow('editions')">Auflagen <i [ngClass]="show['editions'] ? 'fa fa-caret-down' : 'fa fa-caret-right'"></i></h3>
             <div *ngIf="show['editions']" class="ui-g">
               <div *ngFor="let m of manifestations" class="ui-g-12">
                 <p-checkbox [(ngModel)]="filterList[m.titleID]" binary="true" (onChange)="update()"
@@ -63,13 +63,13 @@
           {{m.bibliographicInformation.title}}, {{m.bibliographicInformation.year}}."></p-checkbox>
               </div>
             </div>
-            <h3 (click)="toggleShow('collections')">Standorte</h3>
+            <h3 (click)="toggleShow('collections')">Standorte <i [ngClass]="show['collections'] ? 'fa fa-caret-down' : 'fa fa-caret-right'"></i></h3>
             <div *ngIf="show['collections']" class="ui-g">
               <div *ngFor="let m of uniqueCollections" class="ui-g-12">
                 <p-checkbox [(ngModel)]="filterList[m]" binary="true" (onChange)="update()" label="{{m}}"></p-checkbox>
               </div>
             </div>
-            <h3 (click)="toggleShow('materials')">Materialien</h3>
+            <h3 (click)="toggleShow('materials')">Materialien <i [ngClass]="show['materials'] ? 'fa fa-caret-down' : 'fa fa-caret-right'"></i></h3>
             <div *ngIf="show['materials']" class="ui-g">
               <div *ngFor="let m of uniqueMaterials" class="ui-g-12">
                 <p-checkbox [(ngModel)]="filterList[m]" binary="true" (onChange)="update()" label="{{m}}"></p-checkbox>
@@ -83,14 +83,15 @@
         <div class="ui-g">
           <div class="ui-g-12">
             <div class="tile">
-              <h2 (click)="toggleShow('bibliography')">Bibliographische Angaben</h2>
+              <h2 (click)="toggleShow('bibliography')">Bibliographische Angaben <i [ngClass]="show['bibliography'] ? 'fa fa-caret-down' : 'fa fa-caret-right'"></i></h2>
               <p-accordion *ngIf="show['bibliography']" [multiple]="true">
                 <div *ngFor="let m of manifestations">
-                  <p-accordionTab header="{{m.edition}}. Auflage">
+                  <p-accordionTab header="{{m.edition}}. Auflage: {{m.shelfmark}}">
                     {{m.bibliographicInformation.authors}}:
                     {{m.bibliographicInformation.title}}, {{m.bibliographicInformation.year}}.<br />
+                    ISBN: {{m.bibliographicInformation.isbn}} <br/>
                     <a class="btn btn-success"
-                       href="'https://primo.ub.uni-due.de/UDE:UDEALEPH{' + {{m.bibliographicInformation.alephIndentifier}} + '}'"
+                       [href]="getPrimoLink(m.bibliographicInformation)"
                        target="_blank" role="button">Titel in Primo anzeigen</a>
                   </p-accordionTab>
                 </div>
@@ -99,9 +100,9 @@
           </div>
           <div class="ui-g-12">
             <div class="tile">
-              <div class="ui-g-12">
-                <h2 (click)="toggleShow('graph')">Überblick</h2>
-                <chart [options]="options" *ngIf="manifestationsFound && show['graph']" style="display: block"></chart>
+              <h2 (click)="toggleShow('graph')">Überblick <i [ngClass]="show['graph'] ? 'fa fa-caret-down' : 'fa fa-caret-right'"></i></h2>
+              <div *ngIf="manifestationsFound && show['graph']" class="ui-g-12">
+                <chart [options]="options"  style="display: block"></chart>
               </div>
               <div *ngIf="manifestationsFound && show['graph']" class="ui-g-12">
                 <p-inputSwitch id="usergroups" onLabel="Überblick zeigen" offLabel="Nutzergruppen zeigen"
@@ -114,6 +115,7 @@
             <div class="tile">
               <h2 (click)="toggleShow('items')">
                 Exemplarübersicht
+                <i [ngClass]="show['items'] ? 'fa fa-caret-down' : 'fa fa-caret-right'"></i>
               </h2>
               <p-dataTable *ngIf="show['items']" #dt [value]="selectedItems" [rows]="10" [paginator]="true"
                            [rowsPerPageOptions]="[10,20,50]">
@@ -142,6 +144,7 @@
             <div class="tile">
               <h2 (click)="toggleShow('events')">
                 Ereignisprotokoll
+                <i [ngClass]="show['events'] ? 'fa fa-caret-down' : 'fa fa-caret-right'"></i>
               </h2>
               <p-dataTable *ngIf="show['events']" #di [value]="selectedEvents" [rows]="10" [paginator]="true"
                            [rowsPerPageOptions]="[10,20,50]" sortField="date" [sortOrder]="-1">

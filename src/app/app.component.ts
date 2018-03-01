@@ -14,6 +14,7 @@ import {AnalyzerService} from './service/analyzer.service';
 import {Eventanalysis} from './model/Eventanalysis';
 import {Subscription} from 'rxjs/Subscription';
 import 'rxjs/add/operator/switchMap';
+import {BibliographicInformation} from "./model/BibliographicInformation";
 
 @Component({
   selector: 'app-root',
@@ -119,7 +120,8 @@ export class AppComponent implements OnInit, OnDestroy  {
     this.isAnalyzed = false;
     this.busy = true;
     this.manifestations = [];
-    this.getterService.getFullManifestation(this.protokollRequest.shelfmark, this.protokollRequest.exact).subscribe(
+    console
+    this.getterService.getFullManifestation(this.protokollRequest.shelfmark.replace('+', '%2B'), this.protokollRequest.exact).subscribe(
       data => {
         this.manifestations = data;
         this.initializeLists();
@@ -154,9 +156,9 @@ export class AppComponent implements OnInit, OnDestroy  {
         }
       }
     }
-    this.includeSelectionFromHttpParamters();
     this.uniqueMaterials = Array.from(uniqueMaterials).sort();
     this.uniqueCollections = Array.from(uniqueCollections).sort();
+    this.includeSelectionFromHttpParamters();
     this.update();
   }
 
@@ -295,5 +297,9 @@ export class AppComponent implements OnInit, OnDestroy  {
 
   ngOnDestroy() {
     this.subscription.unsubscribe();
+  }
+
+  getPrimoLink(bibliographicInformation: BibliographicInformation): string {
+    return 'https://primo.ub.uni-due.de/UDE:UDEALEPH{' + bibliographicInformation.alephIdentifier + '}';
   }
 }

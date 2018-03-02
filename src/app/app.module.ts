@@ -21,6 +21,7 @@ import {AnalyzerService} from './service/analyzer.service';
 import {DEFAULT_TIMEOUT, defaultTimeout, TimeoutInterceptor} from './TimeoutInterceptor';
 import {mainRoutingProviders, routing} from "./root.route";
 import {RootComponent} from "./root.component";
+import {BarcodeComponent} from "./barcode/barcode.component";
 
 
 export function highchartsFactory() {
@@ -56,7 +57,7 @@ export function highchartsFactory() {
     SelectButtonModule,
     ChartModule,
     DialogModule],
-  declarations: [RootComponent, AppComponent],
+  declarations: [RootComponent, AppComponent,BarcodeComponent],
   bootstrap: [RootComponent],
   providers: [GetterService, AnalyzerService, {provide: HighchartsStatic,
     useFactory: highchartsFactory}, [{ provide: HTTP_INTERCEPTORS, useClass: TimeoutInterceptor, multi: true }],

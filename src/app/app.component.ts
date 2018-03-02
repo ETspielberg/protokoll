@@ -14,7 +14,7 @@ import {AnalyzerService} from './service/analyzer.service';
 import {Eventanalysis} from './model/Eventanalysis';
 import {Subscription} from 'rxjs/Subscription';
 import 'rxjs/add/operator/switchMap';
-import {BibliographicInformation} from "./model/BibliographicInformation";
+import {BibliographicInformation} from './model/BibliographicInformation';
 
 @Component({
   selector: 'app-root',
@@ -79,7 +79,6 @@ export class AppComponent implements OnInit, OnDestroy  {
   private subscription: Subscription;
 
   ngOnInit(): void {
-
     this.resetVariables();
     this.route.queryParams.subscribe( (params: Params) => {
       if (params['shelfmark'] !== undefined) {this.protokollRequest.shelfmark = params['shelfmark']; }
@@ -120,7 +119,6 @@ export class AppComponent implements OnInit, OnDestroy  {
     this.isAnalyzed = false;
     this.busy = true;
     this.manifestations = [];
-    console
     this.getterService.getFullManifestation(this.protokollRequest.shelfmark.replace('+', '%2B'), this.protokollRequest.exact).subscribe(
       data => {
         this.manifestations = data;
@@ -130,7 +128,8 @@ export class AppComponent implements OnInit, OnDestroy  {
       error => {
         this.busy = false;
         this.primaryLoad = false;
-        this.messages.push({severity: 'error', summary: 'Fehler: ', detail: 'Es konnten keine Auflagen gefunden werden.  Bitte eine gültige Signatur eingeben.'});
+        this.messages.push({severity: 'error', summary: 'Fehler: ',
+          detail: 'Es konnten keine Auflagen gefunden werden.  Bitte eine gültige Signatur eingeben.'});
       }
     );
   }

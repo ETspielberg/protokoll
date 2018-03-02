@@ -1,0 +1,21 @@
+<!-- <div>
+  <ngb-alert type="info" [dismissible]="false">
+    <strong>Je scanne</strong> le code-barres pour voir les ODR.
+  </ngb-alert>
+</div>
+<div *ngIf="barcode">
+  <ngb-alert type="success" [dismissible]="false">
+    {{ barcode }}
+  </ngb-alert>
+</div>
+<button type="button" class="btn btn-warning" (click)="startScanner()">
+  Démarrer le scan du code-barres
+</button>
+
+<div class="input-group">
+  <input type="text" id="inputBarcode" class="form-control" placeholder="zone de vision de la caméra" />
+  <div id="inputBarcode" style="position: static">
+    <div id="interactive" class="viewport"></div>
+  </div>
+</div>
+<!-- <div id="inputBarCode">zone de vision de la caméra</div> -->

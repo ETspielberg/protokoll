@@ -36,7 +36,7 @@
 </div>
 
 <p-dialog header="Daten werden abgerufen" [modal]="true" [closable]="false" [(visible)]="busy">
-  <img src="/assets/img/loading_newtons_cradle.gif" alt="Loading..." style="width:304px;height:228px;">
+  <img src="../assets/img/loading_newtons_cradle.gif" alt="Loading..." style="width:304px;height:228px;">
 </p-dialog>
 
 <p-messages [(value)]="messages"></p-messages>
@@ -87,12 +87,10 @@
               <p-accordion *ngIf="show['bibliography']" [multiple]="true">
                 <div *ngFor="let m of manifestations">
                   <p-accordionTab header="{{m.edition}}. Auflage: {{m.shelfmark}}">
-                    {{m.bibliographicInformation.authors}}:
-                    {{m.bibliographicInformation.title}}, {{m.bibliographicInformation.year}}.<br />
-                    ISBN: {{m.bibliographicInformation.isbn}} <br/>
-                    <a class="btn btn-success"
-                       [href]="getPrimoLink(m.bibliographicInformation)"
-                       target="_blank" role="button">Titel in Primo anzeigen</a>
+                    {{m.bibliographicInformation.fullDescription}}:
+                    <button pButton type="button" class="ui-button-success"
+                       (click)="goToPrimo(m.bibliographicInformation)"
+                       label="Titel in Primo anzeigen"></button>
                   </p-accordionTab>
                 </div>
               </p-accordion>
@@ -107,7 +105,7 @@
               <div *ngIf="manifestationsFound && show['graph']" class="ui-g-12">
                 <p-inputSwitch id="usergroups" onLabel="Überblick zeigen" offLabel="Nutzergruppen zeigen"
                                (onChange)="update()"
-                               [(ngModel)]="showUsergroups"></p-inputSwitch>
+                               [(ngModel)]="show['usergroups']"></p-inputSwitch>
               </div>
             </div>
           </div>

@@ -2,7 +2,7 @@ import {Component, OnDestroy, OnInit} from '@angular/core';
 import {ProtokollRequest} from './model/ProtokollRequest';
 import {Manifestation} from './model/Manifestation';
 import {GetterService} from './service/getter.service';
-import {DataTable, Message} from 'primeng/primeng';
+import {Message} from 'primeng/primeng';
 import {Item} from './model/Item';
 import {Event} from './model/Event';
 
@@ -36,9 +36,9 @@ export class AppComponent implements OnInit, OnDestroy  {
 
   manifestations: Manifestation[];
 
-  private options: Option;
+  public options: Option;
 
-  private filterList: Map<string, boolean>;
+  public filterList: Map<string, boolean>;
 
   private filteredItems: Map<string, Item[]>;
 
@@ -48,19 +48,17 @@ export class AppComponent implements OnInit, OnDestroy  {
 
   private plotData: Map<string, Datapoint[]>;
 
-  private uniqueCollections: string[];
+  public uniqueCollections: string[];
 
-  private uniqueMaterials: string[];
+  public uniqueMaterials: string[];
 
   public protokollRequest: ProtokollRequest;
 
   public selectedManifestations: Manifestation[];
 
-  private selectedEvents: Event[];
+  public selectedEvents: Event[];
 
-  private selectedItems: Item[];
-
-  private showUsergroups: boolean;
+  public selectedItems: Item[];
 
   manifestationsFound: boolean;
 
@@ -110,6 +108,7 @@ export class AppComponent implements OnInit, OnDestroy  {
     this.show['materials'] = true;
     this.show['graph'] = true;
     this.show['bibliography'] = true;
+    this.show['usergroups'] = false;
     this.yearsOfRequests = 2;
     this.yearsOfLoans = 5;
     this.primaryLoad = true;
@@ -128,6 +127,7 @@ export class AppComponent implements OnInit, OnDestroy  {
       error => {
         this.busy = false;
         this.primaryLoad = false;
+        console.log(error);
         this.messages.push({severity: 'error', summary: 'Fehler: ',
           detail: 'Es konnten keine Auflagen gefunden werden.  Bitte eine gültige Signatur eingeben.'});
       }
@@ -233,7 +233,7 @@ export class AppComponent implements OnInit, OnDestroy  {
         '#3D96AE', '#DB843D', '#92A8CD', '#A47D7C', '#B5CA92']);
     this.plotData = new Map<string, Datapoint[]>();
     for (const event of this.selectedEvents) {
-      if (this.showUsergroups) {
+      if (this.show['usergroups']) {
         this.addDatapoint(event, event.borrowerStatus);
       } else {
         if (event.type === 'loan' || event.type === 'return') {
@@ -298,7 +298,8 @@ export class AppComponent implements OnInit, OnDestroy  {
     this.subscription.unsubscribe();
   }
 
-  getPrimoLink(bibliographicInformation: BibliographicInformation): string {
-    return 'https://primo.ub.uni-due.de/UDE:UDEALEPH{' + bibliographicInformation.alephIdentifier + '}';
+  goToPrimo(bibliographicInformation: BibliographicInformation): void {
+    const url = 'https://primo.ub.uni-due.de/UDE:UDEALEPH{' + bibliographicInformation.otherIdentifier + '}';
+    window.open(url, '_blank');
   }
 }

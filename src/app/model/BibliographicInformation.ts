@@ -19,6 +19,7 @@ export class BibliographicInformation {
       public volume: number,
       public keywords: string[],
       public type: string,
-      public alephIdentifier: string
+      public otherIdentifier: string,
+      public fullDescription: string
     ) {}
 }

@@ -16,7 +16,14 @@
 }
 
 .tile-bottom {
-  border-radius: 0px 0px 25px 25px
+  background-color: #dfe4f2;
+  float: left;
+  opacity: 0.9;
+  color: #1a171b;
+  border-radius: 0px 0px 25px 25px;
+  min-width: 100%;
+  padding: 10px;
+  text-align:center;
 }
 
 .tile-sidebar {
@@ -32,19 +39,58 @@
   text-align:left;
 }
 
-.sidebar {
-  z-index: 1;
-  position: fixed;
+@media (max-width: 768px) {
+  .sidebar {
+    display: none;
+  }
+}
+
+@media (min-width: 768px) {
+  .sidebar {
+    z-index: 1;
+    position: fixed;
+  }
 }
 
 .content {
-  margin-top: 20px;
+  height: 100%;
+  min-width: 100%;
 }
 
 .query-bar {
   width: 100%;
-  position: fixed;
   padding: 10px;
   z-Index: 10;
   background-color: #dfe4f2;
+}
+
+@media (min-width: 768px) {
+  .query-bar {
+    position: fixed;
+  }
+}
+
+.small-video {
+  max-height: 70vh;
+  width: 100vw;
+  object-fit: contain;
+}
+
+.sidebar {
+  background-color: #dfe4f2;
+  min-height: 100%;
+}
+
+#wrapper {
+  padding: 50px 0 0 0;
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+}
+
+.ui-tabmenu {
+  min-width: 100%;
+  padding: 5px 5px 0 5px;
 }

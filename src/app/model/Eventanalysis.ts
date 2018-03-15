@@ -4,11 +4,9 @@
 
 export class Eventanalysis {
 
-  constructor(public meanRelativeLoan: number,
+  constructor(public years: number,
+              public meanRelativeLoan: number,
               public lastStock: number,
-              public maxLoansAbs: number,
-              public maxNumberRequest: number,
-              public daysRequested: number,
-              public numberRequests: number) {
+              public maxLoansAbs: number) {
   }
 }

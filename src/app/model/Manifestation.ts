@@ -14,6 +14,7 @@ export class Manifestation {
         public shelfmarkBase: string,
         public edition: string,
         public collections: string[],
-        public materials: string[]
+        public materials: string[],
+        public subLibraries: string[]
     ) {}
 }

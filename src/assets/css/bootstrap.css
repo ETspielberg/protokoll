@@ -11,9 +11,6 @@ html {
 }
 body {
   margin: 0;
-  background-image: url("../img/wolken.jpg");
-  background-size: cover;
-  background-attachment: fixed;
 }
 article,
 aside,
@@ -4183,7 +4180,7 @@ select[multiple].input-group-sm > .input-group-btn > .btn {
 .navbar {
   position: relative;
   min-height: 50px;
-  margin-bottom: 20px;
+  margin-bottom: 0px;
   border: 1px solid transparent;
 }
 @media (min-width: 768px) {
@@ -4985,7 +4982,6 @@ a.badge:focus {
   margin-left: 3px;
 }
 .jumbotron {
-  min-height: 65px;
   padding-top: 0px;
   padding-bottom: 0px;
   margin-bottom: 0px;

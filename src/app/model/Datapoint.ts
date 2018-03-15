@@ -4,4 +4,8 @@ export class Datapoint {
         public x: number,
         public y: number
     ) {}
+
+    getData(): number[] {
+      return [this.x, this.y];
+    }
 }

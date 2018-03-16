@@ -28,7 +28,7 @@ import {TranslateService} from './translate';
 export class AppComponent implements OnInit, OnDestroy {
 
   constructor(private getterService: GetterService,
-              private outer: Router,
+              private router: Router,
               private route: ActivatedRoute,
               private analyzrService: AnalyzerService,
               private translateService: TranslateService) {
@@ -167,10 +167,20 @@ export class AppComponent implements OnInit, OnDestroy {
     this.isAnalyzed = false;
     this.busy = true;
     this.manifestations = [];
+    this.messages = [];
     this.getterService.getFullManifestation(this.protokollRequest.shelfmark.replace('+', '%2B'), this.protokollRequest.exact).subscribe(
       data => {
         this.manifestations = data;
-        this.initializeLists();
+        if (this.manifestations.length === 0) {
+          this.messages.push({
+            severity: 'warn', summary: 'Fehler: ',
+            detail: this.translateService.instant('message.nothingFound')
+          });
+          this.activePart = '';
+          this.busy = false;
+        } else {
+          this.initializeLists();
+        }
         this.primaryLoad = false;
       },
       error => {
@@ -179,8 +189,9 @@ export class AppComponent implements OnInit, OnDestroy {
         console.log(error);
         this.messages.push({
           severity: 'error', summary: 'Fehler: ',
-          detail: 'Es konnten keine Auflagen gefunden werden.  Bitte eine gültige Signatur eingeben.'
+          detail: this.translateService.instant('message.error')
         });
+        this.activePart = '';
       }
     );
   }
@@ -272,7 +283,7 @@ export class AppComponent implements OnInit, OnDestroy {
             this.selectedItems.push(item);
             if (item.deletionDate === '') {
               let numberSublibrary = this.statsSublibraries.get(item.subLibrary);
-              numberSublibrary++
+              numberSublibrary++;
               this.statsSublibraries.set(item.subLibrary, numberSublibrary);
               let numberCollections = this.statsCollection.get(item.collection);
               numberCollections++;
@@ -341,17 +352,19 @@ export class AppComponent implements OnInit, OnDestroy {
       this.updateChartObjectFromMap(this.plotUserData);
     } else {
       this.updateChartObjectFromMap(this.plotData);
+      this.analyzrService.reset(this.plotData);
+      this.eventanalysiss = this.analyzrService.getAnalysis();
+      this.statistics = this.analyzrService.getStatistics();
+      this.activeAnalysis = this.eventanalysiss[this.eventanalysiss.length / 2];
+      this.calculateDeletionProposal();
     }
-    this.analyzrService.reset(this.plotData);
-    this.eventanalysiss = this.analyzrService.getAnalysis();
-    this.statistics = this.analyzrService.getStatistics();
-    this.activeAnalysis = this.eventanalysiss[this.eventanalysiss.length / 2];
-    this.calculateDeletionProposal();
   }
 
   updateChartObjectFromMap(plotData: Map<string, Datapoint[]>) {
-    for (const key in this.plotData) {
+    for (const key in plotData) {
+      console.log(key);
       const datapoints = plotData[key];
+      console.log(datapoints);
       datapoints.push(new Datapoint(new Date().getTime(), datapoints[datapoints.length - 1][1]));
       const dataset: Dataset = new Dataset(this.translateService.instant('series.' + key), datapoints);
       this.options.series.push(dataset);

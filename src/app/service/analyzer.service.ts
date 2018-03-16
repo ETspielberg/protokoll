@@ -142,7 +142,6 @@ export class AnalyzerService {
             stat.numberLoans++;
           } else if (type === 'cald') {
             stat.numberCald++;
-            console.log(series[i]);
             console.log('increased CALD in ' + year);
           }
         }

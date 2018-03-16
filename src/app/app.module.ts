@@ -4,8 +4,8 @@ import {RouterModule} from '@angular/router';
 import {NgModule} from '@angular/core';
 import {DataTableModule} from 'primeng/components/datatable/datatable';
 import {
-  InputSwitchModule, SelectButtonModule, TabMenuModule, ToggleButtonModule, DialogModule, InputTextModule,
-  ButtonModule, TooltipModule, MessageModule, MessagesModule, CheckboxModule, PanelModule, AccordionModule,
+  TabMenuModule, ToggleButtonModule, DialogModule, InputTextModule,
+  ButtonModule, TooltipModule, MessagesModule, CheckboxModule, PanelModule,
   ScrollPanelModule, TabViewModule
 } from 'primeng/primeng';
 import {ChartModule} from 'angular2-highcharts';
@@ -42,11 +42,9 @@ export function highchartsFactory() {
     PanelModule,
     CheckboxModule,
     MessagesModule,
-    MessageModule,
     BrowserAnimationsModule,
     BrowserModule,
     CommonModule,
-    AccordionModule,
     ScrollPanelModule,
     TabViewModule,
     SliderModule,
@@ -57,9 +55,7 @@ export function highchartsFactory() {
     DataTableModule,
     ToggleButtonModule,
     TranslateModule,
-    InputSwitchModule,
     TabMenuModule,
-    SelectButtonModule,
     ChartModule,
     DialogModule],
   declarations: [RootComponent, AppComponent],

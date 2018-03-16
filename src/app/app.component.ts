@@ -108,7 +108,7 @@ export class AppComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.translateService.use('de');
-    const tabs: string[] = ['graph', 'bibliography', 'information', 'items', 'events', 'analysis'];
+    const tabs: string[] = ['graph', 'bibliography', 'information', 'items', 'events'];
     this.items = [];
     tabs.forEach(entry => {
       return this.items.push({
@@ -117,6 +117,15 @@ export class AppComponent implements OnInit, OnDestroy {
         id: entry,
         command: event2 => this.activePart = entry
       });
+    });
+    this.items.push({
+      label: this.translateService.instant('tab.analysis'),
+      icon: 'fa-plus',
+      id: 'analysis',
+      command: event2 => {
+        this.activePart = 'analysis';
+        this.calculateDeletionProposal();
+      }
     });
     this.activeItem = this.items[0];
     this.activePart = this.activeItem.id;
@@ -356,7 +365,6 @@ export class AppComponent implements OnInit, OnDestroy {
       this.eventanalysiss = this.analyzrService.getAnalysis();
       this.statistics = this.analyzrService.getStatistics();
       this.activeAnalysis = this.eventanalysiss[this.eventanalysiss.length / 2];
-      this.calculateDeletionProposal();
     }
   }
 

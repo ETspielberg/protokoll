@@ -379,12 +379,16 @@ export class AppComponent implements OnInit, OnDestroy {
       const dataset: Dataset = new Dataset(this.translateService.instant('series.' + key), datapoints);
       if (key === 'loans') {
         dataset.color = '#4572A7';
+        dataset.zIndex = 1;
       } else if (key === 'stock') {
         dataset.color = '#7e91a7';
+        dataset.zIndex = 0;
       } else if (key === 'requests') {
         dataset.color = '#89A54E';
+        dataset.zIndex = 2;
       } else if (key === 'cald') {
         dataset.color = '#80699B';
+        dataset.zIndex = 3;
       }
       this.options.series.push(dataset);
     }

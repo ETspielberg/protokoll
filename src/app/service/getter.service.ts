@@ -22,8 +22,8 @@ export class GetterService {
       url = url + '&barcode';
     }
     const manifestationsFound = this.http.get<Manifestation[]>(
-       'assets/data/example.json'
-       //  url
+       // 'assets/data/example.json'
+         url
     , { headers: new HttpHeaders({ timeout: `${60000}` }) });
     manifestationsFound.subscribe(data => this.manifestations = data);
     return manifestationsFound;

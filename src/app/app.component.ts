@@ -34,6 +34,8 @@ export class AppComponent implements OnInit, OnDestroy {
               private translateService: TranslateService) {
   }
 
+  index = 0;
+
   busy: boolean;
 
   messages: Message[];
@@ -167,6 +169,7 @@ export class AppComponent implements OnInit, OnDestroy {
     this.show['materials'] = true;
     this.show['usergroups'] = false;
     this.show['subLibrary'] = true;
+    this.show['filter'] = true;
     this.yearsOfRequests = 2;
     this.yearsOfLoans = 5;
     this.primaryLoad = true;
@@ -187,6 +190,7 @@ export class AppComponent implements OnInit, OnDestroy {
           });
           this.activePart = '';
           this.busy = false;
+          this.index = this.manifestations.length - 1;
         } else {
           this.initializeLists();
         }
@@ -326,7 +330,7 @@ export class AppComponent implements OnInit, OnDestroy {
     this.options = new Option({text: ''}, [],
       {title: {text: 'Anzahl'}, min: 0, allowDecimals: false},
       {type: 'datetime'},
-      {defaultSeriesType: 'line', zoomType: 'xy'},
+      {defaultSeriesType: 'area', zoomType: 'xy'},
       ['#AA4643', '#4572A7', '#89A54E', '#80699B',
         '#3D96AE', '#DB843D', '#92A8CD', '#A47D7C', '#B5CA92']);
     this.plotData = new Map<string, Datapoint[]>();
@@ -370,11 +374,18 @@ export class AppComponent implements OnInit, OnDestroy {
 
   updateChartObjectFromMap(plotData: Map<string, Datapoint[]>) {
     for (const key in plotData) {
-      console.log(key);
       const datapoints = plotData[key];
-      console.log(datapoints);
       datapoints.push(new Datapoint(new Date().getTime(), datapoints[datapoints.length - 1][1]));
       const dataset: Dataset = new Dataset(this.translateService.instant('series.' + key), datapoints);
+      if (key === 'loans') {
+        dataset.color = '#4572A7';
+      } else if (key === 'stock') {
+        dataset.color = '#7e91a7';
+      } else if (key === 'requests') {
+        dataset.color = '#89A54E';
+      } else if (key === 'cald') {
+        dataset.color = '#80699B';
+      }
       this.options.series.push(dataset);
     }
   }

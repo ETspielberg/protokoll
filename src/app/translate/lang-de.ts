@@ -1,6 +1,8 @@
 export const LANG_DE_NAME = 'de';
 
 export const LANG_DE_TRANS = {
+  'show.filter': 'Filter anzeigen',
+  'hide.filter': 'Filter ausblenden',
   'shelfmark': 'Signatur oder Barcode',
   'submit': 'Abfrage starten',
   'tooltip.shelfmark': 'Bitte Signatur eingeben',

@@ -6,7 +6,7 @@ import {DataTableModule} from 'primeng/components/datatable/datatable';
 import {
   TabMenuModule, ToggleButtonModule, DialogModule, InputTextModule,
   ButtonModule, TooltipModule, MessagesModule, CheckboxModule, PanelModule,
-  ScrollPanelModule, TabViewModule
+  ScrollPanelModule, TabViewModule, AccordionModule
 } from 'primeng/primeng';
 import {ChartModule} from 'angular2-highcharts';
 import { HighchartsStatic } from 'angular2-highcharts/dist/HighchartsService';
@@ -49,6 +49,7 @@ export function highchartsFactory() {
     TabViewModule,
     SliderModule,
     RouterModule,
+    AccordionModule,
     mainRoutingProviders,
     routing,
     FormsModule,

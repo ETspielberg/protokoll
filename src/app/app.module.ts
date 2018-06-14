@@ -12,7 +12,7 @@ import {ChartModule} from 'angular2-highcharts';
 import { HighchartsStatic } from 'angular2-highcharts/dist/HighchartsService';
 import {FormsModule} from '@angular/forms';
 import * as highcharts from 'highcharts';
-import {protokollRouting} from './app.routing';
+import HighchartsExporting from 'highcharts/modules/exporting.src';
 import {CommonModule, DecimalPipe} from '@angular/common';
 import {HTTP_INTERCEPTORS, HttpClientModule} from '@angular/common/http';
 import {GetterService} from './service/getter.service';
@@ -30,9 +30,10 @@ export function highchartsFactory() {
   const hc = require('highcharts');
   const dd = require('highcharts/modules/drilldown');
   dd(hc);
-
   return hc;
 }
+
+HighchartsExporting(highcharts);
 
 @NgModule({
   imports: [HttpClientModule,

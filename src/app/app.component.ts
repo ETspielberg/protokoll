@@ -90,8 +90,6 @@ export class AppComponent implements OnInit, OnDestroy {
 
   public show: Map<string, boolean>;
 
-  public isAnalyzed: boolean;
-
   private subscription: Subscription;
 
   items: MenuItem[];
@@ -109,6 +107,7 @@ export class AppComponent implements OnInit, OnDestroy {
   activeAnalysis: Eventanalysis;
 
   ngOnInit(): void {
+    this.primaryLoad = true;
     this.translateService.use('de');
     const tabs: string[] = ['graph', 'bibliography', 'information', 'items', 'events'];
     this.items = [];
@@ -133,6 +132,7 @@ export class AppComponent implements OnInit, OnDestroy {
     this.activePart = this.activeItem.id;
     this.staticBuffer = 20;
     this.resetVariables();
+    this.resetProtokollrequest();
     this.route.queryParams.subscribe((params: Params) => {
         if (params['shelfmark'] !== undefined) {
           this.protokollRequest.shelfmark = params['shelfmark'];
@@ -153,6 +153,10 @@ export class AppComponent implements OnInit, OnDestroy {
     );
   }
 
+  resetProtokollrequest() {
+    this.protokollRequest = new ProtokollRequest('', '', '', false);
+  }
+
   resetVariables() {
     this.filteredManifestations = new Map<string, Manifestation>();
     this.filteredItems = new Map<string, Item[]>();
@@ -160,7 +164,10 @@ export class AppComponent implements OnInit, OnDestroy {
     this.selectedManifestations = [];
     this.selectedItems = [];
     this.selectedEvents = [];
-    this.protokollRequest = new ProtokollRequest('', '', '', false);
+    this.messages = [];
+    this.activePart = 'graph';
+    this.manifestationsFound = false;
+    this.manifestations = [];
     this.manifestationsFound = false;
     this.filterList = new Map<string, boolean>();
     this.show = new Map<string, boolean>();
@@ -172,14 +179,11 @@ export class AppComponent implements OnInit, OnDestroy {
     this.show['filter'] = true;
     this.yearsOfRequests = 2;
     this.yearsOfLoans = 5;
-    this.primaryLoad = true;
   }
 
   getFullManifestations() {
-    this.isAnalyzed = false;
     this.busy = true;
-    this.manifestations = [];
-    this.messages = [];
+    this.resetVariables();
     this.getterService.getFullManifestation(this.protokollRequest.shelfmark.replace('+', '%2B'), this.protokollRequest.exact).subscribe(
       data => {
         this.manifestations = data;
@@ -254,9 +258,10 @@ export class AppComponent implements OnInit, OnDestroy {
       for (const f of this.uniqueCollections) {
         let fitting = false;
         for (const m of individualCollections) {
-          if (f.startsWith(m.trim().toUpperCase())) {
-            fitting = true;
-          }
+            fitting = f.startsWith(m.trim().toUpperCase());
+            if (fitting) {
+              break;
+            }
         }
         this.filterList[f] = fitting;
       }
@@ -333,6 +338,7 @@ export class AppComponent implements OnInit, OnDestroy {
       {defaultSeriesType: 'area', zoomType: 'xy'},
       ['#AA4643', '#4572A7', '#89A54E', '#80699B',
         '#3D96AE', '#DB843D', '#92A8CD', '#A47D7C', '#B5CA92']);
+    this.options.exporting = {enabled: true};
     this.plotData = new Map<string, Datapoint[]>();
     if (this.show['usergroups']) {
       this.plotUserData = new Map<string, Datapoint[]>();

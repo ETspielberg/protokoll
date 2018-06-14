@@ -17,22 +17,24 @@ export class AnalyzerService {
     this.statistics = new Map<number, Statistics>();
     this.eventanalysiss = new Map<number, Eventanalysis>();
     const stocks = plotData['stock'];
-    const requests = plotData['requests'];
-    const oldDate = new Date(stocks[0][0]);
-    let year;
-    if (typeof requests !== 'undefined') {
-      const oldRequestsDate = new Date(requests[0][0]);
-      year = Math.min(oldDate.getFullYear(), oldRequestsDate.getFullYear());
-    } else {
-      year = Math.min(oldDate.getFullYear());
-    }
-    const actualYear = new Date().getFullYear();
-    while (year <= actualYear) {
-      this.statistics.set(year, new Statistics(year, 0, 0, 0, 0, 0, 0));
-      if (actualYear - year > 0 && actualYear - year <= 10) {
-        this.eventanalysiss.set(actualYear - year, new Eventanalysis(year, 0, 0, 0));
+    if (typeof stocks !== 'undefined') {
+      const requests = plotData['requests'];
+      const oldDate = new Date(stocks[0][0]);
+      let year;
+      if (typeof requests !== 'undefined') {
+        const oldRequestsDate = new Date(requests[0][0]);
+        year = Math.min(oldDate.getFullYear(), oldRequestsDate.getFullYear());
+      } else {
+        year = Math.min(oldDate.getFullYear());
       }
-      year++;
+      const actualYear = new Date().getFullYear();
+      while (year <= actualYear) {
+        this.statistics.set(year, new Statistics(year, 0, 0, 0, 0, 0, 0));
+        if (actualYear - year > 0 && actualYear - year <= 10) {
+          this.eventanalysiss.set(actualYear - year, new Eventanalysis(year, 0, 0, 0));
+        }
+        year++;
+      }
     }
   }
 
@@ -68,14 +70,18 @@ export class AnalyzerService {
     let timeLoaned = 0;
     let timeStock = 0;
     let lastTimeLoans = startDateLoans;
-    for (const datapoint of loans) {
-      if (datapoint[0] > startDateLoans) {
-        timeLoaned += (datapoint[0] - lastTimeLoans) * datapoint[1];
-        lastTimeLoans = datapoint[0];
-        if (datapoint[1] > eventanalysis.maxLoansAbs) {
-          eventanalysis.maxLoansAbs = datapoint[1];
+    if (typeof loans !== 'undefined') {
+      for (const datapoint of loans) {
+        if (datapoint[0] > startDateLoans) {
+          timeLoaned += (datapoint[0] - lastTimeLoans) * datapoint[1];
+          lastTimeLoans = datapoint[0];
+          if (datapoint[1] > eventanalysis.maxLoansAbs) {
+            eventanalysis.maxLoansAbs = datapoint[1];
+          }
         }
       }
+    } else {
+      eventanalysis.maxLoansAbs = 0;
     }
     for (const datapoint of stock) {
       if (datapoint[0] > startDateLoans) {

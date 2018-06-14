@@ -10,6 +10,7 @@ export class Option {
         public chart?: object,
         public colors?: string[],
         public plotOptions?: object,
-        public lang?: object
+        public lang?: object,
+        public exporting?: object
     ) {}
 }

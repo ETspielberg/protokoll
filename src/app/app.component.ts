@@ -314,6 +314,9 @@ export class AppComponent implements OnInit, OnDestroy {
               this.statsManifestations.set(m.titleID, numberManifestations);
             }
             for (const event of item.events) {
+              if (!(event.type === 'inventory' || event.type === 'deletion') && event.borrowerStatus === '12') {
+                continue;
+              }
               filteredEventsInd.push(event);
               this.selectedEvents.push(event);
               if (event.endEvent != null) {

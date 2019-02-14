@@ -4,3 +4,4 @@ export const settingsUrl = '/api/settings';
 export const getterUrl = '/getter';
 export const resourcesUrl = '/api/resources';
 export const headers = new HttpHeaders().set('Content-Type', 'application/json');
+export const counterretrievalUrl = '/api/counterretrieval';

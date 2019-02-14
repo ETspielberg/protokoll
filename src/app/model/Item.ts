@@ -18,6 +18,7 @@ export class Item {
          public deletionDate: string,
          public price: string,
          public etat: string,
-         public events: Event[]
+         public events: Event[],
+         public noteOpac?: string
     ) {}
 }

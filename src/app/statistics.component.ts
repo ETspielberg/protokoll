@@ -1,24 +1,41 @@
-import {Injectable} from '@angular/core';
-import {Eventanalysis} from '../model/Eventanalysis';
-import {Datapoint} from '../model/Datapoint';
-import {Statistics} from '../model/Statistics';
+import {Component, Input} from '@angular/core';
+import {Datapoint} from './model/Datapoint';
+import {Statistics} from './model/Statistics';
 
-@Injectable()
-export class AnalyzerService {
+@Component({
+  selector: 'app-statistics',
+  templateUrl: 'statistics.component.html'
+})
 
-  public eventanalysiss: Map<number, Eventanalysis>;
+export class StatisticsComponent {
 
-  public statistics: Map<number, Statistics>;
+  private plotData: Map<string, Datapoint[]>;
 
-  plotData: Map<string, Datapoint[]>;
+  private statistics: Map<number, Statistics>;
 
-  reset(plotData: Map<string, Datapoint[]>) {
-    this.plotData = plotData;
+  public statisticsList: Statistics[];
+
+  @Input()
+  get data() {
+    if (this.plotData !== null) {
+      this.reset();
+    }
+    return this.plotData;
+  }
+
+  set data(val) {
+    this.plotData = val;
+    if (val !== null) {
+      this.reset();
+    }
+  }
+
+  reset() {
     this.statistics = new Map<number, Statistics>();
-    this.eventanalysiss = new Map<number, Eventanalysis>();
-    const stocks = plotData['stock'];
+    this.statisticsList = [];
+    const stocks = this.plotData['stock'];
     if (typeof stocks !== 'undefined') {
-      const requests = plotData['requests'];
+      const requests = this.plotData['requests'];
       const oldDate = new Date(stocks[0][0]);
       let year;
       if (typeof requests !== 'undefined') {
@@ -30,78 +47,20 @@ export class AnalyzerService {
       const actualYear = new Date().getFullYear();
       while (year <= actualYear) {
         this.statistics.set(year, new Statistics(year, 0, 0, 0, 0, 0, 0));
-        if (actualYear - year > 0 && actualYear - year <= 10) {
-          this.eventanalysiss.set(actualYear - year, new Eventanalysis(year, 0, 0, 0));
-        }
         year++;
       }
+      this.calculateStatistics();
     }
   }
 
-  getStatistics(): Statistics[] {
+  public calculateStatistics(): void {
     const actualYear = new Date().getFullYear();
     this.fillAnalysisFields(this.plotData, 'loans', actualYear);
     this.fillAnalysisFields(this.plotData, 'cald', actualYear);
     this.fillAnalysisFields(this.plotData, 'stock', actualYear);
     this.fillAnalysisFields(this.plotData, 'requests', actualYear);
-    const stats = [];
     this.statistics.forEach(
-      entry => stats.push(entry)
-    );
-    return stats;
-  }
-
-  getAnalysis(): Eventanalysis[] {
-    this.calculateAnalysis(this.plotData);
-    const analyses: Eventanalysis[] = [];
-    this.eventanalysiss.forEach(entry => analyses.push(entry));
-    return analyses;
-  }
-
-  private calculateSingleAnalysis(plotData: Map<string, Datapoint[]>, yearsOfLoans: number): Eventanalysis {
-    const eventanalysis = this.eventanalysiss.get(yearsOfLoans);
-    const dayInMillis = 3600 * 24 * 1000;
-    const yearInMillis = 365 * dayInMillis;
-    const today = new Date().getTime();
-    const startDateLoans = today - yearsOfLoans * yearInMillis;
-    const loans = plotData['loans'];
-    const stock = plotData['stock'];
-    eventanalysis.lastStock = stock[stock.length - 1].y;
-    let timeLoaned = 0;
-    let timeStock = 0;
-    let lastTimeLoans = startDateLoans;
-    if (typeof loans !== 'undefined') {
-      for (const datapoint of loans) {
-        if (datapoint[0] > startDateLoans) {
-          timeLoaned += (datapoint[0] - lastTimeLoans) * datapoint[1];
-          lastTimeLoans = datapoint[0];
-          if (datapoint[1] > eventanalysis.maxLoansAbs) {
-            eventanalysis.maxLoansAbs = datapoint[1];
-          }
-        }
-      }
-    } else {
-      eventanalysis.maxLoansAbs = 0;
-    }
-    for (const datapoint of stock) {
-      if (datapoint[0] > startDateLoans) {
-        timeStock += (datapoint[0] - lastTimeLoans) * datapoint[1];
-        lastTimeLoans = datapoint[0];
-      }
-    }
-    if (timeStock !== 0) {
-      eventanalysis.meanRelativeLoan = timeLoaned / timeStock;
-    }
-    eventanalysis.years = yearsOfLoans;
-    return eventanalysis;
-  }
-
-  private calculateAnalysis(plotData: Map<string, Datapoint[]>) {
-    this.eventanalysiss.forEach(
-      (value: Eventanalysis, key: number) => {
-        const analysis = this.calculateSingleAnalysis(plotData, key);
-        this.eventanalysiss.set(key, analysis);
-      }
+      entry => this.statisticsList.push(entry)
     );
   }
 

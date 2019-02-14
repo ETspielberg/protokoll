@@ -2,7 +2,7 @@
   <div class="container-fluid">
     <div class="navbar-header">
       <a class="navbar-brand" href="/">Lib-Intel</a>
-      <a  style="color: #efe4bf" class="navbar-brand" href="#">:: Protokoll</a>
+      <a style="color: #efe4bf" class="navbar-brand" href="#">:: Protokoll</a>
     </div>
     <div id="navbar" class="navbar">
       <ul class="nav navbar-nav navbar-right">
@@ -22,7 +22,7 @@
     </h1>
     <p style="padding: 10px;">{{'description.protocol.short' | translate}}</p>
     <div class="ui-g ui-fluid">
-      <form (submit)="getFullManifestations()" (keyup.enter)="getFullManifestations()">
+      <form (submit)="collect()" (keyup.enter)="collect()">
         <div class="ui-g-12 ui-lg-3">
         <span class="ui-float-label">
         <input id="float-input" type="text" size="30" pInputText [(ngModel)]="protokollRequest.shelfmark"
@@ -44,7 +44,7 @@
                           [(ngModel)]="protokollRequest.exact" [ngModelOptions]="{standalone: true}"></p-toggleButton>
         </div>
         <div class="ui-g-12 ui-lg-3">
-          <button pButton type="button" class="ui-button-success" (click)="getFullManifestations()" icon="fa-search"
+          <button pButton type="button" class="ui-button-success" (click)="collect()" icon="fa-search"
                   label="Abfrage starten"></button>
         </div>
       </form>
@@ -53,12 +53,10 @@
 </div>
 
 <p-dialog header="Daten werden abgerufen" [modal]="true" [closable]="false" [(visible)]="busy">
-  <img src="assets/img/loading_newtons_cradle.gif" alt="Loading..." style="width:304px;height:228px;">
+  <img src="/files/custom/loading.gif" alt="Loading..." style="width:304px;height:228px;">
 </p-dialog>
 
 <div id="wrapper" *ngIf="!primaryLoad" class="ui-g">
-
-
   <div class="ui-g content">
     <div class="ui-md-2 ui-g-12 ui-g-nopad" *ngIf="show['filter']">
       <div *ngIf="manifestationsFound">
@@ -66,9 +64,9 @@
           <h3 (click)="toggleShow('editions')">{{'editions' | translate}} <i
             [ngClass]="show['editions'] ? 'fa fa-caret-down' : 'fa fa-caret-right'"></i></h3>
           <div *ngIf="show['editions']" class="ui-g">
-            <div *ngFor="let m of manifestations" class="ui-g-12">
+            <div *ngFor="let m of getterService.manifestations" class="ui-g-12">
               <p-checkbox [(ngModel)]="filterList[m.titleID]" binary="true" (onChange)="update()"
-                          label="{{m.edition}}. Auflage: {{m.shelfmark}} ({{statsManifestations.get(m.titleID)}})"
+                          label="{{m.edition}}. Auflage: {{m.shelfmark}}   <{{statsManifestations.get(m.titleID)}} Ex.>"
                           pTooltip="{{m.bibliographicInformation.authors}}:
           {{m.bibliographicInformation.title}}, {{m.bibliographicInformation.year}}."></p-checkbox>
             </div>
@@ -78,7 +76,7 @@
           <div *ngIf="show['collections']" class="ui-g">
             <div *ngFor="let m of uniqueCollections" class="ui-g-12">
               <p-checkbox [(ngModel)]="filterList[m]" binary="true" (onChange)="update()"
-                          label="{{m}} ({{statsCollection.get(m)}})"></p-checkbox>
+                          label="{{m}} <{{statsCollection.get(m)}} Ex.>"></p-checkbox>
             </div>
           </div>
           <h3 (click)="toggleShow('materials')">{{'materials' | translate}} <i
@@ -86,7 +84,7 @@
           <div *ngIf="show['materials']" class="ui-g">
             <div *ngFor="let m of uniqueMaterials" class="ui-g-12">
               <p-checkbox [(ngModel)]="filterList[m]" binary="true" (onChange)="update()"
-                          label="{{'material.' + m | translate}} ({{statsMaterials.get(m)}})"></p-checkbox>
+                          label="{{'material.' + m | translate}} <{{statsMaterials.get(m)}} Ex.>"></p-checkbox>
             </div>
           </div>
           <h3 (click)="toggleShow('subLibrary')">{{'subLibraries' | translate}} <i
@@ -94,7 +92,7 @@
           <div *ngIf="show['subLibrary']" class="ui-g">
             <div *ngFor="let m of uniqueSubLibraries" class="ui-g-12">
               <p-checkbox [(ngModel)]="filterList[m]" binary="true" (onChange)="update()"
-                          label="{{'subLibrary.' + m | translate}} ({{statsSublibraries.get(m)}})"></p-checkbox>
+                          label="{{'subLibrary.' + m | translate}} <{{statsSublibraries.get(m)}} Ex.>"></p-checkbox>
             </div>
           </div>
         </p-scrollPanel>
@@ -103,7 +101,7 @@
 
     <div class="ui-md-10 ui-g-12">
 
-      <form (submit)="getFullManifestations()" (keyup.enter)="getFullManifestations()">
+      <form (submit)="collect()" (keyup.enter)="collect()">
 
         <div class="ui-g"
              style="padding: 20px; border-style: none none solid none; background-color: #dfe4f2;">
@@ -137,14 +135,15 @@
       </form>
       <p-messages [(value)]="messages" [closable]="false"></p-messages>
 
-      <div class="ui-g" *ngIf="manifestationsFound && selectedItems.length > 0">
+      <div class="ui-g" *ngIf="(manifestationsFound && selectedItems.length > 0) || counterFound">
         <p-tabMenu [model]="items" [activeItem]="items[0]"></p-tabMenu>
         <div class="ui-g-12 ui-md-12 ui-lg-12 tile-bottom">
           <h2>{{'title.' + activePart | translate}}</h2>
 
           <div *ngIf="activePart === 'bibliography'">
             <p-accordion [multiple]="true">
-              <p-accordionTab header="{{m.edition}}. Auflage: {{m.shelfmark}}" *ngFor="let m of manifestations;  let index = index" [selected]="(index === 0)">
+              <p-accordionTab header="{{m.edition}}. Auflage: {{m.shelfmark}}"
+                              *ngFor="let m of getterService.manifestations;  let index = index" [selected]="(index === 0)">
                 <div [innerHTML]="m.bibliographicInformation.fullDescription"></div>
                 <button pButton type="button" class="ui-button-success"
                         (click)="goToPrimo(m.bibliographicInformation)"
@@ -153,86 +152,12 @@
             </p-accordion>
           </div>
 
-          <div class="ui-g-12" *ngIf="activePart === 'graph'">
-            <chart [options]="options" style="display: block; height: 60vH;"></chart>
-          </div>
-          <div *ngIf="activePart === 'graph'" class="ui-g-12">
-            <p-toggleButton onLabel="Überblick zeigen" offLabel="Nutzergruppen zeigen"
-                            [(ngModel)]="show['usergroups']" (onChange)="update()"
-                            [ngModelOptions]="{standalone: true}"></p-toggleButton>
-          </div>
+          <app-graph [data]="plotData" [title]="title" [groups]="groupData" [isElectronic]="isElectronic" *ngIf="activePart === 'graph'"></app-graph>
 
-          <p-dataTable #dt [value]="statistics" [rows]="10" [paginator]="true"
-                       [rowsPerPageOptions]="[10,20,50]" sortField="year" [sortOrder]="-1"
-                       *ngIf="activePart === 'information'">
-            <p-header>
-              <div class="ui-helper-clearfix">
-                <button style="float: left;" class="ui-button-success" type="button" pButton
-                        (click)="dt.exportCSV()"
-                        label="Export" icon="fa-table"></button>
-              </div>
-            </p-header>
-            <p-column field="year" header="Jahr" [sortable]="true"
-                      filterPlaceholder="Filter"></p-column>
-            <p-column field="meanRelativeLoan" header="Mittlere Ausleihe" [sortable]="true">
-              <ng-template let-col let-statistic="rowData" pTemplate="body">
-                {{(statistic.daysLoaned / statistic.daysStock) | percent:'1.0-1'}}
-              </ng-template>
-            </p-column>
-            <p-column field="numberRequests" header="Anzahl Vormerkungen" [sortable]="true"
-                      filterPlaceholder="Filter"></p-column>
-            <p-column field="numberLoans" header="Anzahl Ausleihen" [sortable]="true"
-                      filterPlaceholder="Filter"></p-column>
-            <p-column field="numberCald" header="Anzahl CaLD" [sortable]="true"
-                      filterPlaceholder="Filter"></p-column>
-          </p-dataTable>
+          <app-statistics [data]="plotData" *ngIf="activePart === 'information'"></app-statistics>
 
-          <div class="ui-g" *ngIf="activePart === 'analysis'">
-            <div class="ui-g-8">
-              <p>In dieser Tabelle werden die ungenutzten Exemplare in den zurückliegenden X Jahren dargestellt.</p>
-              <p-dataTable #danalysis [value]="eventanalysiss" selectionMode="single" [(selection)]="activeAnalysis"
-                           sortField="year" [sortOrder]="1" dataKey="years"
-                           (onRowSelect)="calculateDeletionProposal()">
-                <p-header>
-                  <div class="ui-helper-clearfix">
-                    <button style="float: left;" class="ui-button-success" type="button" pButton
-                            (click)="danalysis.exportCSV()"
-                            label="Export" icon="fa-table"></button>
-                  </div>
-                </p-header>
-                <p-column field="years" header="Jahre"
-                          filterPlaceholder="Filter"></p-column>
-                <p-column field="maxLoansAbs" header="Maximale Ausleihe"
-                          filterPlaceholder="Filter"></p-column>
-                >
-                <p-column field="lastStock" header="Ungenutzte Exemplare">
-                  <ng-template let-col let-eventanalysis="rowData" pTemplate="body">
-                    {{eventanalysis.lastStock - eventanalysis.maxLoansAbs}}
-                  </ng-template>
-                </p-column>
+          <app-analysis [data]="plotData" *ngIf="activePart === 'analysis'"></app-analysis>
 
-              </p-dataTable>
-            </div>
-            <div class="ui-g-4" *ngIf="activeAnalysis">
-
-              <p>In den letzten {{activeAnalysis.years}} Jahren wurden von den vorhandenen
-                {{activeAnalysis.lastStock}} Exemplaren {{activeAnalysis.lastStock - activeAnalysis.maxLoansAbs}}
-                nicht genutzt.</p>
-
-              <p-slider [(ngModel)]="staticBuffer" [min]="0" [max]="100"
-                        (onChange)="calculateDeletionProposal()"></p-slider>
-
-              <p>Bei einer Reserve von {{staticBuffer}} % ergibt sich ein Vorschlag zur Aussonderung von</p>
-
-              <p style="color:darkred; font-size: x-large; font-weight: bolder;"> {{deletionProposal |
-                number:'1.0-0'}} Exemplar(en)</p>
-
-              <!--<button pButton type="button" class="ui-button-danger" icon="fa-trash" iconPos="right" label="Aussondern"></button>-->
-            </div>
-            <div class="ui-g-4" *ngIf="!activeAnalysis">
-              <p>Bitte einen Zeitraum für die Analyse auswahählen.</p>
-            </div>
-            </div>
           <p-dataTable #dt [value]="selectedItems" [rows]="10" [paginator]="true"
                        [rowsPerPageOptions]="[10,20,50]" *ngIf="activePart === 'items'">
             <p-header>
@@ -253,7 +178,8 @@
             <p-column field="itemStatus" header="Status" [sortable]="true" [filter]="true"
                       filterPlaceholder="Filter">
               <ng-template let-col let-item="rowData" pTemplate="body">
-                {{'item.status.' + item.status | translate}}
+                {{'item.status.' + item.itemStatus | translate}}{{'item.process.status.' + item.processStatus |
+                translate}} {{item.noteOpac}}
               </ng-template>
             </p-column>
           </p-dataTable>

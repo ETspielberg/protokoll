@@ -11,6 +11,7 @@ export class Option {
         public colors?: string[],
         public plotOptions?: object,
         public lang?: object,
+        public tooltip?: object,
         public exporting?: object
     ) {}
 }

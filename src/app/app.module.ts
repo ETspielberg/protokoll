@@ -1,4 +1,4 @@
-///<reference path="../../node_modules/primeng/components/common/menuitem.d.ts"/>
+///<reference path='../../node_modules/primeng/components/common/menuitem.d.ts'/>
 import {AppComponent} from './app.component';
 import {RouterModule} from '@angular/router';
 import {NgModule} from '@angular/core';
@@ -18,12 +18,14 @@ import {HTTP_INTERCEPTORS, HttpClientModule} from '@angular/common/http';
 import {GetterService} from './service/getter.service';
 import {BrowserModule} from '@angular/platform-browser';
 import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
-import {AnalyzerService} from './service/analyzer.service';
 import {DEFAULT_TIMEOUT, defaultTimeout, TimeoutInterceptor} from './TimeoutInterceptor';
 import {mainRoutingProviders, routing} from './root.route';
 import {RootComponent} from './root.component';
 import {TranslateModule} from './translate/translate.module';
 import {SliderModule} from 'primeng/slider';
+import {AnalysisComponent} from './analysis.component';
+import {StatisticsComponent} from './statistics.component';
+import {GraphComponent} from './graph.component';
 
 
 export function highchartsFactory() {
@@ -60,9 +62,9 @@ HighchartsExporting(highcharts);
     TabMenuModule,
     ChartModule,
     DialogModule],
-  declarations: [RootComponent, AppComponent],
+  declarations: [RootComponent, AppComponent, AnalysisComponent, StatisticsComponent, GraphComponent],
   bootstrap: [RootComponent],
-  providers: [GetterService, DecimalPipe, AnalyzerService, {provide: HighchartsStatic,
+  providers: [GetterService, DecimalPipe, {provide: HighchartsStatic,
     useFactory: highchartsFactory}, [{ provide: HTTP_INTERCEPTORS, useClass: TimeoutInterceptor, multi: true }],
     [{ provide: DEFAULT_TIMEOUT, useValue: defaultTimeout }]]
 })

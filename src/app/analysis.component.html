@@ -1,0 +1,47 @@
+<div class="ui-g">
+  <div class="ui-g-8">
+    <p>In dieser Tabelle werden die ungenutzten Exemplare in den zurückliegenden X Jahren dargestellt.</p>
+    <p-dataTable #danalysis [value]="analyses" selectionMode="single" [(selection)]="activeAnalysis"
+                 sortField="year" [sortOrder]="1" dataKey="years"
+                 (onRowSelect)="calculateDeletionProposal()">
+      <p-header>
+        <div class="ui-helper-clearfix">
+          <button style="float: left;" class="ui-button-success" type="button" pButton
+                  (click)="danalysis.exportCSV()"
+                  label="Export" icon="fa-table"></button>
+        </div>
+      </p-header>
+      <p-column field="years" header="Jahre"
+                filterPlaceholder="Filter"></p-column>
+      <p-column field="maxLoansAbs" header="Maximale Ausleihe"
+                filterPlaceholder="Filter"></p-column>
+      >
+      <p-column field="lastStock" header="Ungenutzte Exemplare">
+        <ng-template let-col let-eventanalysis="rowData" pTemplate="body">
+          {{eventanalysis.lastStock - eventanalysis.maxLoansAbs}}
+        </ng-template>
+      </p-column>
+
+    </p-dataTable>
+
+  </div>
+    <div class="ui-g-4" *ngIf="activeAnalysis">
+
+      <p>In den letzten {{activeAnalysis.years}} Jahren wurden von den vorhandenen
+        {{activeAnalysis.lastStock}} Exemplaren {{activeAnalysis.lastStock - activeAnalysis.maxLoansAbs}}
+        nicht genutzt.</p>
+
+      <p-slider [(ngModel)]="staticBuffer" [min]="0" [max]="100"
+                (onChange)="calculateDeletionProposal()"></p-slider>
+
+      <p>Bei einer Reserve von {{staticBuffer}} % ergibt sich ein Vorschlag zur Aussonderung von</p>
+
+      <p style="color:darkred; font-size: x-large; font-weight: bolder;"> {{deletionProposal |
+        number:'1.0-0'}} Exemplar(en)</p>
+
+      <!--<button pButton type="button" class="ui-button-danger" icon="fa-trash" iconPos="right" label="Aussondern"></button>-->
+    </div>
+    <div class="ui-g-4" *ngIf="!activeAnalysis">
+      <p>Bitte einen Zeitraum für die Analyse auswahählen.</p>
+    </div>
+</div>

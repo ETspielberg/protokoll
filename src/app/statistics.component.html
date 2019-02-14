@@ -1,0 +1,23 @@
+<p-dataTable  #dt [value]="statisticsList" [rows]="10"
+              [paginator]="true" [rowsPerPageOptions]="[10,20,50]" sortField="year" [sortOrder]="-1">
+  <p-header>
+    <div class="ui-helper-clearfix">
+      <button style="float: left;" class="ui-button-success" type="button" pButton
+              (click)="dt.exportCSV()"
+              label="Export" icon="fa-table"></button>
+    </div>
+  </p-header>
+  <p-column field="year" header="Jahr" [sortable]="true"
+            filterPlaceholder="Filter"></p-column>
+  <p-column field="meanRelativeLoan" header="Mittlere Ausleihe" [sortable]="true">
+    <ng-template let-col let-statistic="rowData" pTemplate="body">
+      {{(statistic.daysLoaned / statistic.daysStock) | percent:'1.0-1'}}
+    </ng-template>
+  </p-column>
+  <p-column field="numberRequests" header="Anzahl Vormerkungen" [sortable]="true"
+            filterPlaceholder="Filter"></p-column>
+  <p-column field="numberLoans" header="Anzahl Ausleihen" [sortable]="true"
+            filterPlaceholder="Filter"></p-column>
+  <p-column field="numberCald" header="Anzahl CaLD" [sortable]="true"
+            filterPlaceholder="Filter"></p-column>
+</p-dataTable>

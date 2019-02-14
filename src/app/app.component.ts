@@ -7,16 +7,10 @@ import {Item} from './model/Item';
 import {Event} from './model/Event';
 
 import {ActivatedRoute, Params, Router} from '@angular/router';
-import {Option} from './model/Option';
-import {Dataset} from './model/Dataset';
-import {Datapoint} from './model/Datapoint';
-import {AnalyzerService} from './service/analyzer.service';
-import {Eventanalysis} from './model/Eventanalysis';
 import {Subscription} from 'rxjs/Subscription';
 import 'rxjs/add/operator/switchMap';
 import {BibliographicInformation} from './model/BibliographicInformation';
 import {MenuItem} from 'primeng/api';
-import {Statistics} from './model/Statistics';
 import {TranslateService} from './translate';
 
 @Component({
@@ -27,22 +21,21 @@ import {TranslateService} from './translate';
 
 export class AppComponent implements OnInit, OnDestroy {
 
-  constructor(private getterService: GetterService,
+  constructor(public getterService: GetterService,
               private router: Router,
               private route: ActivatedRoute,
-              private analyzrService: AnalyzerService,
               private translateService: TranslateService) {
   }
 
   index = 0;
 
+  plotData: Map<string, number[][]>;
+
+  title: string;
+
   busy: boolean;
 
   messages: Message[];
-
-  manifestations: Manifestation[];
-
-  public options: Option;
 
   public filterList: Map<string, boolean>;
 
@@ -52,9 +45,7 @@ export class AppComponent implements OnInit, OnDestroy {
 
   private filteredManifestations: Map<string, Manifestation>;
 
-  private plotData: Map<string, Datapoint[]>;
-
-  private plotUserData: Map<string, Datapoint[]>;
+  groupData: Map<string, number[][]>;
 
   public uniqueCollections: string[];
 
@@ -82,11 +73,7 @@ export class AppComponent implements OnInit, OnDestroy {
 
   primaryLoad: boolean;
 
-  private yearsOfLoans: number;
-
-  private yearsOfRequests: number;
-
-  public eventanalysiss: Eventanalysis[];
+  isElectronic: boolean;
 
   public show: Map<string, boolean>;
 
@@ -98,18 +85,12 @@ export class AppComponent implements OnInit, OnDestroy {
 
   activePart: string;
 
-  statistics: Statistics[];
-
-  staticBuffer: number;
-
-  deletionProposal: number;
-
-  activeAnalysis: Eventanalysis;
+  counterFound: boolean;
 
   ngOnInit(): void {
     this.primaryLoad = true;
     this.translateService.use('de');
-    const tabs: string[] = ['graph', 'bibliography', 'information', 'items', 'events'];
+    const tabs: string[] = ['graph', 'bibliography', 'information', 'items', 'events', 'analysis'];
     this.items = [];
     tabs.forEach(entry => {
       return this.items.push({
@@ -119,23 +100,22 @@ export class AppComponent implements OnInit, OnDestroy {
         command: event2 => this.activePart = entry
       });
     });
-    this.items.push({
-      label: this.translateService.instant('tab.analysis'),
-      icon: 'fa-plus',
-      id: 'analysis',
-      command: event2 => {
-        this.activePart = 'analysis';
-        this.calculateDeletionProposal();
-      }
-    });
     this.activeItem = this.items[0];
     this.activePart = this.activeItem.id;
-    this.staticBuffer = 20;
     this.resetVariables();
     this.resetProtokollrequest();
     this.route.queryParams.subscribe((params: Params) => {
         if (params['shelfmark'] !== undefined) {
-          this.protokollRequest.shelfmark = params['shelfmark'];
+          const shelfmark = params['shelfmark'];
+          if (shelfmark.indexOf(':') !== -1) {
+            this.protokollRequest.shelfmark = shelfmark.split(':')[1];
+            this.protokollRequest.collections = shelfmark.split(':')[0];
+          } else if (shelfmark.indexOf('=') !== -1) {
+            this.protokollRequest.shelfmark = shelfmark.split('=')[1];
+            this.protokollRequest.collections = shelfmark.split('=')[0];
+          } else {
+            this.protokollRequest.shelfmark = params['shelfmark'];
+          }
         }
         if (params['exact'] !== undefined) {
           this.protokollRequest.exact = ('true' === params['exact']);
@@ -147,7 +127,7 @@ export class AppComponent implements OnInit, OnDestroy {
           this.protokollRequest.shelfmark = params['materials'];
         }
         if (this.protokollRequest.shelfmark !== '') {
-          this.getFullManifestations();
+          this.collect();
         }
       }
     );
@@ -155,6 +135,32 @@ export class AppComponent implements OnInit, OnDestroy {
 
   resetProtokollrequest() {
     this.protokollRequest = new ProtokollRequest('', '', '', false);
+  }
+
+  collect() {
+    this.getterService.setProtokollrequest(this.protokollRequest);
+    switch (this.getterService.typeOfIdentifier) {
+      case 'shelfmark': {
+        this.isElectronic = false;
+        this.getFullManifestations();
+        break;
+      }
+      case 'barcode': {
+        this.isElectronic = false;
+        this.getFullManifestations();
+        break;
+      }
+      case 'ebook': {
+        this.isElectronic = true;
+        this.getCounterData();
+        break;
+      }
+      case 'journal': {
+        this.isElectronic = true;
+        this.getCounterData();
+        break;
+      }
+    }
   }
 
   resetVariables() {
@@ -165,9 +171,11 @@ export class AppComponent implements OnInit, OnDestroy {
     this.selectedItems = [];
     this.selectedEvents = [];
     this.messages = [];
+    this.isElectronic = false;
     this.activePart = 'graph';
+    this.counterFound = false;
     this.manifestationsFound = false;
-    this.manifestations = [];
+    this.getterService.manifestations = [];
     this.manifestationsFound = false;
     this.filterList = new Map<string, boolean>();
     this.show = new Map<string, boolean>();
@@ -177,26 +185,25 @@ export class AppComponent implements OnInit, OnDestroy {
     this.show['usergroups'] = false;
     this.show['subLibrary'] = true;
     this.show['filter'] = true;
-    this.yearsOfRequests = 2;
-    this.yearsOfLoans = 5;
   }
 
   getFullManifestations() {
     this.busy = true;
     this.resetVariables();
-    this.getterService.getFullManifestation(this.protokollRequest.shelfmark.replace('+', '%2B'), this.protokollRequest.exact).subscribe(
+    this.getterService.getFullManifestation().subscribe(
       data => {
-        this.manifestations = data;
-        if (this.manifestations.length === 0) {
+        this.getterService.manifestations = data;
+        if (this.getterService.manifestations.length === 0) {
           this.messages.push({
             severity: 'warn', summary: 'Fehler: ',
             detail: this.translateService.instant('message.nothingFound')
           });
           this.activePart = '';
           this.busy = false;
-          this.index = this.manifestations.length - 1;
+          this.index = this.getterService.manifestations.length - 1;
         } else {
           this.initializeLists();
+          console.log(this.getterService.counters);
         }
         this.primaryLoad = false;
       },
@@ -209,16 +216,48 @@ export class AppComponent implements OnInit, OnDestroy {
           detail: this.translateService.instant('message.error')
         });
         this.activePart = '';
+
+      }
+    );
+
+  }
+
+  getCounterData() {
+    this.busy = true;
+    this.resetVariables();
+    this.getterService.getAllCounters().subscribe(
+      data => {
+        this.getterService.counters = data;
+        if (this.getterService.counters.length === 0) {
+          this.messages.push({
+            severity: 'warn', summary: 'Fehler: ',
+            detail: this.translateService.instant('message.nothingFound')
+          });
+          this.activePart = '';
+          this.busy = false;
+          this.index = this.getterService.counters.length - 1;
+        }
+        this.primaryLoad = false;
+        this.convertCounterIntoPlotData();
+      },
+      error => {
+        this.busy = false;
+        this.primaryLoad = false;
+        this.messages.push({
+          severity: 'error', summary: 'Fehler: ',
+          detail: this.translateService.instant('message.error')
+        });
+        this.activePart = '';
       }
     );
   }
 
   initializeLists() {
-    this.manifestationsFound = this.manifestations.length > 0;
+    this.manifestationsFound = this.getterService.manifestations.length > 0;
     const uniqueCollections = new Set<string>();
     const uniqueMaterials = new Set<string>();
     const uniqueSublibraries = new Set<string>();
-    this.manifestations.forEach(manifestation => {
+    this.getterService.manifestations.forEach(manifestation => {
       this.filterList[manifestation.titleID] = true;
       this.selectedManifestations.push(manifestation);
       manifestation.collections.forEach(collection => {
@@ -258,10 +297,10 @@ export class AppComponent implements OnInit, OnDestroy {
       for (const f of this.uniqueCollections) {
         let fitting = false;
         for (const m of individualCollections) {
-            fitting = f.startsWith(m.trim().toUpperCase());
-            if (fitting) {
-              break;
-            }
+          fitting = f.startsWith(m.trim().toUpperCase());
+          if (fitting) {
+            break;
+          }
         }
         this.filterList[f] = fitting;
       }
@@ -288,7 +327,7 @@ export class AppComponent implements OnInit, OnDestroy {
     this.selectedManifestations = [];
     this.selectedItems = [];
     this.selectedEvents = [];
-    for (const m of this.manifestations) {
+    for (const m of this.getterService.manifestations) {
       this.statsManifestations.set(m.titleID, 0);
       if (this.filterList[m.titleID]) {
         this.selectedManifestations.push(m);
@@ -335,75 +374,49 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   updatePlotData() {
-    this.options = new Option({text: ''}, [],
-      {title: {text: 'Anzahl'}, min: 0, allowDecimals: false},
-      {type: 'datetime'},
-      {defaultSeriesType: 'area', zoomType: 'xy'},
-      ['#AA4643', '#4572A7', '#89A54E', '#80699B',
-        '#3D96AE', '#DB843D', '#92A8CD', '#A47D7C', '#B5CA92']);
-    this.options.exporting = {enabled: true};
-    this.plotData = new Map<string, Datapoint[]>();
-    if (this.show['usergroups']) {
-      this.plotUserData = new Map<string, Datapoint[]>();
-      for (const event of this.selectedEvents) {
-        this.addDatapointToMap(event, event.borrowerStatus, this.plotUserData);
-      }
-    } else {
-      this.plotData = new Map<string, Datapoint[]>();
-      for (const event of this.selectedEvents) {
-        if (event.type === 'loan' || event.type === 'return') {
-          this.addDatapointToMap(event, 'loans', this.plotData);
-        } else if (event.type === 'request' || event.type === 'hold') {
-          this.addDatapointToMap(event, 'requests', this.plotData);
-        } else if (event.type === 'inventory' || event.type === 'deletion') {
-          this.addDatapointToMap(event, 'stock', this.plotData);
-        } else if (event.type === 'cald' || event.type === 'caldDelivery') {
-          this.addDatapointToMap(event, 'cald', this.plotData);
-        }
-      }
-    }
     if (this.selectedManifestations.length === 1) {
       const manifestation: Manifestation = this.filteredManifestations[this.selectedManifestations[0].titleID];
-      this.options.title = {text: manifestation.shelfmark + ' (' + manifestation.edition + '. Auflage)'};
+      this.title = manifestation.shelfmark + ' (' + manifestation.edition + '. Auflage)';
     } else {
       let title = '';
       this.selectedManifestations.forEach(manifestation => title = title + manifestation.shelfmark + ', ');
-      this.options.title = {text: title.substr(0, title.length - 2)};
+      this.title = title.substr(0, title.length - 2);
     }
-    if (this.show['usergroups']) {
-      this.updateChartObjectFromMap(this.plotUserData);
-    } else {
-      this.updateChartObjectFromMap(this.plotData);
-      this.analyzrService.reset(this.plotData);
-      this.eventanalysiss = this.analyzrService.getAnalysis();
-      this.statistics = this.analyzrService.getStatistics();
-      this.activeAnalysis = this.eventanalysiss[this.eventanalysiss.length / 2];
-    }
-  }
-
-  updateChartObjectFromMap(plotData: Map<string, Datapoint[]>) {
-    for (const key in plotData) {
-      const datapoints = plotData[key];
-      datapoints.push(new Datapoint(new Date().getTime(), datapoints[datapoints.length - 1][1]));
-      const dataset: Dataset = new Dataset(this.translateService.instant('series.' + key), datapoints);
-      if (key === 'loans') {
-        dataset.color = '#4572A7';
-        dataset.zIndex = 1;
-      } else if (key === 'stock') {
-        dataset.color = '#7e91a7';
-        dataset.zIndex = 0;
-      } else if (key === 'requests') {
-        dataset.color = '#89A54E';
-        dataset.zIndex = 2;
-      } else if (key === 'cald') {
-        dataset.color = '#80699B';
-        dataset.zIndex = 3;
+    this.plotData = new Map<string, number[][]>();
+    this.groupData = new Map<string, number[][]>();
+    for (const event of this.selectedEvents) {
+      this.addDatapointToMap(event, event.borrowerStatus, this.groupData);
+      if (event.type === 'loan' || event.type === 'return') {
+        this.addDatapointToMap(event, 'loans', this.plotData);
+      } else if (event.type === 'request' || event.type === 'hold') {
+        this.addDatapointToMap(event, 'requests', this.plotData);
+      } else if (event.type === 'inventory' || event.type === 'deletion') {
+        this.addDatapointToMap(event, 'stock', this.plotData);
+      } else if (event.type === 'cald' || event.type === 'caldDelivery') {
+        this.addDatapointToMap(event, 'cald', this.plotData);
       }
-      this.options.series.push(dataset);
     }
   }
 
-  addDatapointToMap(event: Event, classOfEvent: string, map: Map<string, Datapoint[]>) {
+  convertCounterIntoPlotData() {
+    this.plotData = new Map<string, number[][]>();
+    this.groupData = new Map<string, number[][]>();
+    for (const countercollection of this.getterService.counters) {
+      console.log(countercollection.identifier);
+      let list: number[][] = [];
+      for (const counter of countercollection.counters) {
+        const date = new Date(counter.year, counter.month);
+        const values = [date.valueOf(), counter.totalRequests];
+        list.push(values);
+      }
+      list = list.sort((n1, n2) => n1[0] - n2[0]);
+      this.plotData.set(countercollection.identifier, list);
+      this.busy = false;
+      this.counterFound = true;
+    }
+  }
+
+  addDatapointToMap(event: Event, classOfEvent: string, map: Map<string, number[][]>) {
     if (event.time > 0) {
       let list: number[][];
       if ((typeof map[classOfEvent] === 'undefined')) {
@@ -430,11 +443,6 @@ export class AppComponent implements OnInit, OnDestroy {
   goToPrimo(bibliographicInformation: BibliographicInformation): void {
     const url = 'https://primo.ub.uni-due.de/UDE:UDEALEPH{' + bibliographicInformation.otherIdentifier + '}';
     window.open(url, '_blank');
-  }
-
-  calculateDeletionProposal() {
-    const proposal = (this.activeAnalysis.lastStock - this.activeAnalysis.maxLoansAbs) * (1 - this.staticBuffer / 100);
-    this.deletionProposal = (proposal < 0) ? 0 : proposal;
   }
 
 }

@@ -1,0 +1,9 @@
+<div  class="ui-g-12">
+  <chart [options]="options" style="display: block; height: 60vH;"></chart>
+</div>
+
+<div class="ui-g-12">
+  <p-toggleButton onLabel="Überblick zeigen" offLabel="Gruppen zeigen"
+                  [(ngModel)]="showGroups" (onChange)="setOptions()"
+                  [ngModelOptions]="{standalone: true}"></p-toggleButton>
+</div>

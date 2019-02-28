@@ -87,14 +87,6 @@
                           label="{{'material.' + m | translate}} <{{statsMaterials.get(m)}} Ex.>"></p-checkbox>
             </div>
           </div>
-          <h3 (click)="toggleShow('subLibrary')">{{'subLibraries' | translate}} <i
-            [ngClass]="show['subLibrary'] ? 'fa fa-caret-down' : 'fa fa-caret-right'"></i></h3>
-          <div *ngIf="show['subLibrary']" class="ui-g">
-            <div *ngFor="let m of uniqueSubLibraries" class="ui-g-12">
-              <p-checkbox [(ngModel)]="filterList[m]" binary="true" (onChange)="update()"
-                          label="{{'subLibrary.' + m | translate}} <{{statsSublibraries.get(m)}} Ex.>"></p-checkbox>
-            </div>
-          </div>
         </p-scrollPanel>
       </div>
     </div>
@@ -127,10 +119,13 @@
                             [(ngModel)]="protokollRequest.exact" [ngModelOptions]="{standalone: true}"></p-toggleButton>
           </div>
           <div class="ui-g-12 ui-md-6 ui-lg-2">
-            <button pButton type="button" class="ui-button-success" (click)="getFullManifestations()" icon="fa-search"
+            <button pButton type="button" class="ui-button-success" (click)="collect()" icon="fa-search"
                     label="Abfrage starten"></button>
           </div>
-
+          <div class="ui-g-12 ui-md-6 ui-lg-2">
+            <button pButton type="button" class="ui-button-success" (click)="copyLink()" icon="fas-search"
+                    label="Link kopieren"></button>
+          </div>
         </div>
       </form>
       <p-messages [(value)]="messages" [closable]="false"></p-messages>
@@ -152,7 +147,7 @@
             </p-accordion>
           </div>
 
-          <app-graph [data]="plotData" [title]="title" [groups]="groupData" [isElectronic]="isElectronic" *ngIf="activePart === 'graph'"></app-graph>
+          <app-graph [data]="plotData" [title]="title" [groups]="groupData" [isElectronic]="getterService.isElectronic" *ngIf="activePart === 'graph'"></app-graph>
 
           <app-statistics [data]="plotData" *ngIf="activePart === 'information'"></app-statistics>
 

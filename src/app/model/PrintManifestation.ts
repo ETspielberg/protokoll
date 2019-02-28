@@ -4,7 +4,7 @@ import {BibliographicInformation} from './BibliographicInformation';
  * Created by Eike on 17.07.2017.
  */
 
-export class Manifestation {
+export class PrintManifestation {
 
     constructor(
         public titleID: string,

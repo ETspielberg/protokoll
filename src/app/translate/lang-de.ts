@@ -10,6 +10,7 @@ export const LANG_DE_TRANS = {
   'tab.bibliography' : 'Titeldaten',
   'tab.information' : 'Zahlen',
   'tab.items' : 'Exemplare',
+  'tab.usage' : 'Nutzung',
   'tab.events' : 'Ereignisse',
   'tab.analysis' : 'Analyse',
   'title.protocol': 'Ausleihprotokoll',
@@ -150,5 +151,4 @@ export const LANG_DE_TRANS = {
   'series.???': 'unbekannt',
   'message.nothingFound': 'Leider konnten keine Auflagen gefunden werden. Bitte eine gültige Signatur eingeben.',
   'message.error': 'Es ist ein Fehler aufgetreten. Die Daten konnten nicht abgerufen werden.',
-
 };

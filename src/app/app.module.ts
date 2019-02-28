@@ -8,11 +8,7 @@ import {
   ButtonModule, TooltipModule, MessagesModule, CheckboxModule, PanelModule,
   ScrollPanelModule, TabViewModule, AccordionModule
 } from 'primeng/primeng';
-import {ChartModule} from 'angular2-highcharts';
-import { HighchartsStatic } from 'angular2-highcharts/dist/HighchartsService';
 import {FormsModule} from '@angular/forms';
-import * as highcharts from 'highcharts';
-import HighchartsExporting from 'highcharts/modules/exporting.src';
 import {CommonModule, DecimalPipe} from '@angular/common';
 import {HTTP_INTERCEPTORS, HttpClientModule} from '@angular/common/http';
 import {GetterService} from './service/getter.service';
@@ -26,22 +22,17 @@ import {SliderModule} from 'primeng/slider';
 import {AnalysisComponent} from './analysis.component';
 import {StatisticsComponent} from './statistics.component';
 import {GraphComponent} from './graph.component';
-
-
-export function highchartsFactory() {
-  const hc = require('highcharts');
-  const dd = require('highcharts/modules/drilldown');
-  dd(hc);
-  return hc;
-}
-
-HighchartsExporting(highcharts);
+import {HighchartsChartModule} from 'highcharts-angular';
+import {ClipboardModule, ClipboardService} from 'ngx-clipboard';
+import {MessageService} from 'primeng/api';
 
 @NgModule({
   imports: [HttpClientModule,
+    HighchartsChartModule,
     ButtonModule,
     TooltipModule,
     InputTextModule,
+    ClipboardModule,
     PanelModule,
     CheckboxModule,
     MessagesModule,
@@ -60,12 +51,10 @@ HighchartsExporting(highcharts);
     ToggleButtonModule,
     TranslateModule,
     TabMenuModule,
-    ChartModule,
     DialogModule],
   declarations: [RootComponent, AppComponent, AnalysisComponent, StatisticsComponent, GraphComponent],
   bootstrap: [RootComponent],
-  providers: [GetterService, DecimalPipe, {provide: HighchartsStatic,
-    useFactory: highchartsFactory}, [{ provide: HTTP_INTERCEPTORS, useClass: TimeoutInterceptor, multi: true }],
+  providers: [GetterService, DecimalPipe, ClipboardService, MessageService, [{ provide: HTTP_INTERCEPTORS, useClass: TimeoutInterceptor, multi: true }],
     [{ provide: DEFAULT_TIMEOUT, useValue: defaultTimeout }]]
 })
 

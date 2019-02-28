@@ -1,6 +1,6 @@
 import {Component, OnDestroy, OnInit} from '@angular/core';
 import {ProtokollRequest} from './model/ProtokollRequest';
-import {Manifestation} from './model/Manifestation';
+import {PrintManifestation} from './model/PrintManifestation';
 import {GetterService} from './service/getter.service';
 import {Message} from 'primeng/primeng';
 import {Item} from './model/Item';
@@ -10,8 +10,11 @@ import {ActivatedRoute, Params, Router} from '@angular/router';
 import {Subscription} from 'rxjs/Subscription';
 import 'rxjs/add/operator/switchMap';
 import {BibliographicInformation} from './model/BibliographicInformation';
-import {MenuItem} from 'primeng/api';
+import {MenuItem, MessageService} from 'primeng/api';
 import {TranslateService} from './translate';
+import {ClipboardService} from 'ngx-clipboard';
+import {DigitalManifestation} from './model/DigitalManifestation';
+
 
 @Component({
   selector: 'app-root',
@@ -24,12 +27,18 @@ export class AppComponent implements OnInit, OnDestroy {
   constructor(public getterService: GetterService,
               private router: Router,
               private route: ActivatedRoute,
-              private translateService: TranslateService) {
+              private translateService: TranslateService,
+              private clipboardService: ClipboardService,
+              private messageService: MessageService) {
   }
 
   index = 0;
 
   plotData: Map<string, number[][]>;
+
+  groupData: Map<string, number[][]>;
+
+  digitalData: Map<string, number[][]>;
 
   title: string;
 
@@ -43,15 +52,15 @@ export class AppComponent implements OnInit, OnDestroy {
 
   private filteredEvents: Map<string, Event[]>;
 
-  private filteredManifestations: Map<string, Manifestation>;
+  private filteredManifestations: Map<string, PrintManifestation>;
 
-  groupData: Map<string, number[][]>;
+  private filteredDigitalManifestations: Map<string, DigitalManifestation>;
+
+  private queriedIdentifiers: Set<string>;
 
   public uniqueCollections: string[];
 
   public uniqueMaterials: string[];
-
-  public uniqueSubLibraries: string[];
 
   public statsCollection: Map<string, number>;
 
@@ -63,7 +72,7 @@ export class AppComponent implements OnInit, OnDestroy {
 
   public protokollRequest: ProtokollRequest;
 
-  public selectedManifestations: Manifestation[];
+  public selectedManifestations: PrintManifestation[];
 
   public selectedEvents: Event[];
 
@@ -71,7 +80,7 @@ export class AppComponent implements OnInit, OnDestroy {
 
   manifestationsFound: boolean;
 
-  primaryLoad: boolean;
+  primaryLoad = true;
 
   isElectronic: boolean;
 
@@ -79,7 +88,7 @@ export class AppComponent implements OnInit, OnDestroy {
 
   private subscription: Subscription;
 
-  items: MenuItem[];
+  items: MenuItem[] = [];
 
   activeItem: MenuItem;
 
@@ -87,12 +96,14 @@ export class AppComponent implements OnInit, OnDestroy {
 
   counterFound: boolean;
 
+  status = 'ready';
+
+  private tabs: string[] = ['graph', 'usage', 'bibliography', 'information', 'items', 'events', 'analysis'];
+
+
   ngOnInit(): void {
-    this.primaryLoad = true;
     this.translateService.use('de');
-    const tabs: string[] = ['graph', 'bibliography', 'information', 'items', 'events', 'analysis'];
-    this.items = [];
-    tabs.forEach(entry => {
+    this.tabs.forEach(entry => {
       return this.items.push({
         label: this.translateService.instant('tab.' + entry),
         icon: 'fa-plus',
@@ -103,7 +114,7 @@ export class AppComponent implements OnInit, OnDestroy {
     this.activeItem = this.items[0];
     this.activePart = this.activeItem.id;
     this.resetVariables();
-    this.resetProtokollrequest();
+    this.protokollRequest = new ProtokollRequest();
     this.route.queryParams.subscribe((params: Params) => {
         if (params['shelfmark'] !== undefined) {
           const shelfmark = params['shelfmark'];
@@ -133,38 +144,61 @@ export class AppComponent implements OnInit, OnDestroy {
     );
   }
 
-  resetProtokollrequest() {
-    this.protokollRequest = new ProtokollRequest('', '', '', false);
-  }
-
   collect() {
-    this.getterService.setProtokollrequest(this.protokollRequest);
-    switch (this.getterService.typeOfIdentifier) {
-      case 'shelfmark': {
-        this.isElectronic = false;
-        this.getFullManifestations();
-        break;
-      }
-      case 'barcode': {
-        this.isElectronic = false;
-        this.getFullManifestations();
-        break;
-      }
-      case 'ebook': {
-        this.isElectronic = true;
-        this.getCounterData();
-        break;
-      }
-      case 'journal': {
-        this.isElectronic = true;
-        this.getCounterData();
-        break;
-      }
+    this.busy = true;
+    this.queriedIdentifiers = new Set<string>();
+    this.status = 'collecting';
+    const typeOfIdentifier = this.getterService.setProtokollrequest(this.protokollRequest);
+    this.getterService.clearData();
+    this.isElectronic = (typeOfIdentifier === 'ebook');
+    if (this.isElectronic) {
+      this.getDigitalManifestation();
+    } else {
+      this.getAllPrintManifestations();
     }
   }
 
+  extendPrintManifestations() {
+    this.getterService.manifestations.forEach(
+      entry => {
+        let isbn = entry.bibliographicInformation.isbn.replace(/-/gi, '');
+        if (isbn.length > 13) {
+          if (isbn.startsWith('978')) {
+            isbn = isbn.substring(0, 13);
+          } else {
+            isbn = isbn.substring(0, 10);
+          }
+        }
+        if (!this.queriedIdentifiers.has(isbn)) {
+          this.queriedIdentifiers.add(isbn);
+          this.getterService.getPrimoResponse(isbn).subscribe(
+            data => data.electronic.forEach(
+              record => {
+                if (!this.queriedIdentifiers.has(record.isbn)) {
+                  this.getterService.getCounters(record.isbn).subscribe(
+                    digitalManifestation => this.getterService.digitalManifestation.push(digitalManifestation)
+                  );
+                }
+              }
+            )
+          );
+        }
+      });
+  }
+
+  extendDigitalManifestations() {
+    const recordIds = [];
+    this.getterService.digitalManifestation.forEach(
+      entry =>
+        recordIds.push(this.getterService.getPrimoResponse(entry.identifier).subscribe(
+          data => data.print.forEach(
+            record => this.getterService.buildFullManifestation(record.recordId).subscribe()
+          ))
+        ));
+  }
+
   resetVariables() {
-    this.filteredManifestations = new Map<string, Manifestation>();
+    this.filteredManifestations = new Map<string, PrintManifestation>();
     this.filteredItems = new Map<string, Item[]>();
     this.filteredEvents = new Map<string, Event[]>();
     this.selectedManifestations = [];
@@ -183,11 +217,10 @@ export class AppComponent implements OnInit, OnDestroy {
     this.show['collections'] = true;
     this.show['materials'] = true;
     this.show['usergroups'] = false;
-    this.show['subLibrary'] = true;
     this.show['filter'] = true;
   }
 
-  getFullManifestations() {
+  getAllPrintManifestations() {
     this.busy = true;
     this.resetVariables();
     this.getterService.getFullManifestation().subscribe(
@@ -199,16 +232,18 @@ export class AppComponent implements OnInit, OnDestroy {
             detail: this.translateService.instant('message.nothingFound')
           });
           this.activePart = '';
+          this.status = 'error';
           this.busy = false;
           this.index = this.getterService.manifestations.length - 1;
         } else {
-          this.initializeLists();
-          console.log(this.getterService.counters);
+          this.initializeFilterLists();
+          this.extendPrintManifestations();
         }
         this.primaryLoad = false;
       },
       error => {
         this.busy = false;
+        this.status = 'error';
         this.primaryLoad = false;
         console.log(error);
         this.messages.push({
@@ -216,29 +251,28 @@ export class AppComponent implements OnInit, OnDestroy {
           detail: this.translateService.instant('message.error')
         });
         this.activePart = '';
-
       }
     );
-
   }
 
-  getCounterData() {
+  getDigitalManifestation() {
     this.busy = true;
     this.resetVariables();
     this.getterService.getAllCounters().subscribe(
       data => {
-        this.getterService.counters = data;
-        if (this.getterService.counters.length === 0) {
+        this.getterService.digitalManifestation = data;
+        if (this.getterService.digitalManifestation.length === 0) {
           this.messages.push({
             severity: 'warn', summary: 'Fehler: ',
             detail: this.translateService.instant('message.nothingFound')
           });
           this.activePart = '';
           this.busy = false;
-          this.index = this.getterService.counters.length - 1;
+          this.index = this.getterService.digitalManifestation.length - 1;
         }
         this.primaryLoad = false;
         this.convertCounterIntoPlotData();
+        this.extendDigitalManifestations();
       },
       error => {
         this.busy = false;
@@ -252,11 +286,10 @@ export class AppComponent implements OnInit, OnDestroy {
     );
   }
 
-  initializeLists() {
+  initializeFilterLists() {
     this.manifestationsFound = this.getterService.manifestations.length > 0;
     const uniqueCollections = new Set<string>();
     const uniqueMaterials = new Set<string>();
-    const uniqueSublibraries = new Set<string>();
     this.getterService.manifestations.forEach(manifestation => {
       this.filterList[manifestation.titleID] = true;
       this.selectedManifestations.push(manifestation);
@@ -272,16 +305,9 @@ export class AppComponent implements OnInit, OnDestroy {
           this.filterList[material] = true;
         }
       });
-      manifestation.subLibraries.forEach(subLibrary => {
-        if (!uniqueSublibraries.has(subLibrary)) {
-          uniqueSublibraries.add(subLibrary);
-          this.filterList[subLibrary] = true;
-        }
-      });
     });
     this.uniqueMaterials = Array.from(uniqueMaterials).sort();
     this.uniqueCollections = Array.from(uniqueCollections).sort();
-    this.uniqueSubLibraries = Array.from(uniqueSublibraries).sort();
     this.includeSelectionFromHttpParamters();
     this.update();
   }
@@ -320,8 +346,7 @@ export class AppComponent implements OnInit, OnDestroy {
     this.statsSublibraries = new Map<string, number>();
     this.uniqueCollections.forEach(collection => this.statsCollection.set(collection, 0));
     this.uniqueMaterials.forEach(material => this.statsMaterials.set(material, 0));
-    this.uniqueSubLibraries.forEach(sublibrary => this.statsSublibraries.set(sublibrary, 0));
-    this.filteredManifestations = new Map<string, Manifestation>();
+    this.filteredManifestations = new Map<string, PrintManifestation>();
     this.filteredItems = new Map<string, Item[]>();
     this.filteredEvents = new Map<string, Event[]>();
     this.selectedManifestations = [];
@@ -335,13 +360,10 @@ export class AppComponent implements OnInit, OnDestroy {
         const filteredItemsInd: Item[] = [];
         const filteredEventsInd: Event[] = [];
         for (const item of m.items) {
-          if (this.filterList[item.collection] && this.filterList[item.material] && this.filterList[item.subLibrary]) {
+          if (this.filterList[item.collection] && this.filterList[item.material]) {
             filteredItemsInd.push(item);
             this.selectedItems.push(item);
             if (item.deletionDate === '') {
-              let numberSublibrary = this.statsSublibraries.get(item.subLibrary);
-              numberSublibrary++;
-              this.statsSublibraries.set(item.subLibrary, numberSublibrary);
               let numberCollections = this.statsCollection.get(item.collection);
               numberCollections++;
               this.statsCollection.set(item.collection, numberCollections);
@@ -375,7 +397,7 @@ export class AppComponent implements OnInit, OnDestroy {
 
   updatePlotData() {
     if (this.selectedManifestations.length === 1) {
-      const manifestation: Manifestation = this.filteredManifestations[this.selectedManifestations[0].titleID];
+      const manifestation: PrintManifestation = this.filteredManifestations[this.selectedManifestations[0].titleID];
       this.title = manifestation.shelfmark + ' (' + manifestation.edition + '. Auflage)';
     } else {
       let title = '';
@@ -399,21 +421,22 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   convertCounterIntoPlotData() {
-    this.plotData = new Map<string, number[][]>();
+    this.digitalData = new Map<string, number[][]>();
     this.groupData = new Map<string, number[][]>();
-    for (const countercollection of this.getterService.counters) {
-      console.log(countercollection.identifier);
-      let list: number[][] = [];
-      for (const counter of countercollection.counters) {
-        const date = new Date(counter.year, counter.month);
-        const values = [date.valueOf(), counter.totalRequests];
-        list.push(values);
-      }
-      list = list.sort((n1, n2) => n1[0] - n2[0]);
-      this.plotData.set(countercollection.identifier, list);
-      this.busy = false;
-      this.counterFound = true;
-    }
+    this.getterService.digitalManifestation.forEach(
+      entry => {
+        this.title = entry.title;
+        let list: number[][] = [];
+        for (const counter of entry.usage) {
+          const date = new Date(counter.year, counter.month, 15);
+          const values: number[] = [date.getTime(), counter.totalRequests];
+          list.push(values);
+        }
+        list = list.sort((n1, n2) => n1[0] - n2[0]);
+        this.plotData[entry.identifier] = list;
+        this.busy = false;
+        this.counterFound = true;
+      });
   }
 
   addDatapointToMap(event: Event, classOfEvent: string, map: Map<string, number[][]>) {
@@ -445,4 +468,13 @@ export class AppComponent implements OnInit, OnDestroy {
     window.open(url, '_blank');
   }
 
+  copyLink() {
+    const url = location.href.split('?')[0] + '?' + this.getterService.request.asUrlParamters();
+    this.clipboardService.copyFromContent(url);
+    this.messageService.add({
+      severity: 'success',
+      summary: 'Link kopiert',
+      detail: 'Der Link wurde in die Ziwschenablage eingefügt'
+    });
+  }
 }

@@ -1,14 +1,24 @@
-import {Component, Input} from '@angular/core';
+import {Component, Input, OnInit} from '@angular/core';
 import {Option} from './model/Option';
 import {Dataset} from './model/Dataset';
 import {TranslateService} from './translate';
+
+import * as Highcharts from 'highcharts';
 
 @Component({
   selector: 'app-graph',
   templateUrl: 'graph.component.html'
 })
 
-export class GraphComponent {
+export class GraphComponent implements OnInit {
+
+  Highcharts = Highcharts;
+
+  chartConstructor = 'chart';
+
+  updateFlag = false; // optional boolean
+  oneToOneFlag = true; // optional boolean, defaults to false
+  runOutsideAngular = false; // optional boolean, defaults to false
 
   graphTitle: string;
 
@@ -20,9 +30,14 @@ export class GraphComponent {
 
   options: Option;
 
+  private usergroupRegExp: RegExp = new RegExp('^[0-9]{2}');
+
   showGroups: boolean;
 
   constructor(private translateService: TranslateService) {
+  }
+
+  ngOnInit() {
     if (this.plotData) {
       this.setOptions();
     }
@@ -67,39 +82,7 @@ export class GraphComponent {
   }
 
   setOptions() {
-    if (this.isElectronicMedium) {
-      this.options = new Option({text: 'Anzahl Zugriffe'}, [],
-        {title: {text: 'Anzahl'}, min: 0, allowDecimals: false},
-        {
-          type: 'datetime',
-          dateTimeLabelFormats: {month: '%B %Y'}
-        },
-        {defaultSeriesType: 'column', zoomType: 'xy'},
-        ['#AA4643', '#4572A7', '#89A54E', '#80699B',
-          '#3D96AE', '#DB843D', '#92A8CD', '#A47D7C', '#B5CA92']);
-      this.options.lang = {
-        months: ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni',
-          'Juli', 'August', 'September', 'Oktober', 'November',
-          'Dezember'],
-        shortMonths: ['Jan', 'Feb', 'März', 'Apr', 'Mai', 'Jun',
-          'Jul', 'Aug', 'Sep', 'Okt', 'Nov',
-          'Dez']
-      };
-      this.options.plotOptions = {
-        column: {
-          stacking: 'normal'
-        }
-      };
-    } else {
-      this.options = new Option({text: ''}, [],
-        {title: {text: 'Anzahl'}, min: 0, allowDecimals: false},
-        {type: 'datetime'},
-        {defaultSeriesType: 'area', zoomType: 'xy'},
-        ['#AA4643', '#4572A7', '#89A54E', '#80699B',
-          '#3D96AE', '#DB843D', '#92A8CD', '#A47D7C', '#B5CA92']);
-    }
-    this.options.exporting = {enabled: true};
-    this.options.title = {text: this.graphTitle};
+    this.options = new Option(this.graphTitle, '');
     if (this.showGroups) {
       this.updateChartObjectFromMap(this.groupedData);
     } else {
@@ -108,24 +91,40 @@ export class GraphComponent {
   }
 
   updateChartObjectFromMap(map: Map<string, number[][]>) {
-    console.log(map);
     for (const key in map) {
       const datapoints = map[key];
       datapoints.push([new Date().getTime(), datapoints[datapoints.length - 1][1]]);
-      const dataset: Dataset = new Dataset(this.translateService.instant('series.' + key), datapoints);
+      let dataset: Dataset = new Dataset(this.translateService.instant('series.' + key), datapoints);
+      if (this.isElectronicMedium) {
+        dataset = new Dataset(this.translateService.instant(key), datapoints);
+      }
       if (key === 'loans') {
         dataset.color = '#4572A7';
-        dataset.zIndex = 1;
+        dataset.zIndex = 2;
+        dataset.yAxis = 0;
+        dataset.type = 'area';
       } else if (key === 'stock') {
         dataset.color = '#7e91a7';
-        dataset.zIndex = 0;
+        dataset.zIndex = 1;
+        dataset.yAxis = 0;
+        dataset.type = 'area';
       } else if (key === 'requests') {
         dataset.color = '#89A54E';
-        dataset.zIndex = 2;
+        dataset.zIndex = 3;
+        dataset.yAxis = 0;
+        dataset.type = 'area';
       } else if (key === 'cald') {
         dataset.color = '#80699B';
-        dataset.zIndex = 3;
+        dataset.zIndex = 4;
+        dataset.yAxis = 0;
+        dataset.type = 'area';
+      } else {
+        dataset.color = '#AA4643';
+        dataset.zIndex = 0;
+        dataset.yAxis = 1;
+        dataset.type = 'column';
       }
+
       this.options.series.push(dataset);
     }
   }

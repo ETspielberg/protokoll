@@ -10,7 +10,7 @@ import {ActivatedRoute, Params, Router} from '@angular/router';
 import {Subscription} from 'rxjs/Subscription';
 import 'rxjs/add/operator/switchMap';
 import {BibliographicInformation} from './model/BibliographicInformation';
-import {MenuItem, MessageService} from 'primeng/api';
+import {MenuItem, MessageService, SelectItem} from 'primeng/api';
 import {TranslateService} from './translate';
 import {ClipboardService} from 'ngx-clipboard';
 import {DigitalManifestation} from './model/DigitalManifestation';
@@ -34,17 +34,25 @@ export class AppComponent implements OnInit, OnDestroy {
 
   index = 0;
 
-  plotData: Map<string, number[][]>;
+  public printManifestations: Map<string, PrintManifestation>;
 
-  groupData: Map<string, number[][]>;
+  public digitalManifestations: Map<string, DigitalManifestation>;
+
+  printData: Map<string, number[][]>;
 
   digitalData: Map<string, number[][]>;
 
   title: string;
 
+  isPrint = false;
+
+  isDigital = false;
+
   busy: boolean;
 
   messages: Message[];
+
+  protokollRequest: ProtokollRequest;
 
   public filterList: Map<string, boolean>;
 
@@ -68,17 +76,11 @@ export class AppComponent implements OnInit, OnDestroy {
 
   public statsManifestations: Map<string, number>;
 
-  public statsSublibraries: Map<string, number>;
-
-  public protokollRequest: ProtokollRequest;
-
   public selectedManifestations: PrintManifestation[];
 
   public selectedEvents: Event[];
 
   public selectedItems: Item[];
-
-  manifestationsFound: boolean;
 
   primaryLoad = true;
 
@@ -98,17 +100,29 @@ export class AppComponent implements OnInit, OnDestroy {
 
   status = 'ready';
 
-  private tabs: string[] = ['graph', 'usage', 'bibliography', 'information', 'items', 'events', 'analysis'];
+  chartDetail = 'overview';
 
+  chartDetails = ['overview', 'groups'];
+
+
+  chartDetailsOptions: SelectItem[] = [];
+
+  private tabs: string[] = ['graph', 'usage', 'bibliography', 'information', 'items', 'events', 'analysis'];
 
   ngOnInit(): void {
     this.translateService.use('de');
+    this.chartDetails.forEach(entry => this.chartDetailsOptions.push(
+      {
+        label: this.translateService.instant(entry),
+        value: entry
+      }
+    ));
     this.tabs.forEach(entry => {
       return this.items.push({
         label: this.translateService.instant('tab.' + entry),
         icon: 'fa-plus',
         id: entry,
-        command: event2 => this.activePart = entry
+        command: event => this.activePart = entry
       });
     });
     this.activeItem = this.items[0];
@@ -117,27 +131,17 @@ export class AppComponent implements OnInit, OnDestroy {
     this.protokollRequest = new ProtokollRequest();
     this.route.queryParams.subscribe((params: Params) => {
         if (params['shelfmark'] !== undefined) {
-          const shelfmark = params['shelfmark'];
-          if (shelfmark.indexOf(':') !== -1) {
-            this.protokollRequest.shelfmark = shelfmark.split(':')[1];
-            this.protokollRequest.collections = shelfmark.split(':')[0];
-          } else if (shelfmark.indexOf('=') !== -1) {
-            this.protokollRequest.shelfmark = shelfmark.split('=')[1];
-            this.protokollRequest.collections = shelfmark.split('=')[0];
-          } else {
-            this.protokollRequest.shelfmark = params['shelfmark'];
+          this.protokollRequest.shelfmark = params['shelfmark'];
+          this.protokollRequest.update();
+          if (params['exact'] !== undefined) {
+            this.protokollRequest.exact = ('true' === params['exact']);
           }
-        }
-        if (params['exact'] !== undefined) {
-          this.protokollRequest.exact = ('true' === params['exact']);
-        }
-        if (params['collections'] !== undefined) {
-          this.protokollRequest.collections = params['collections'];
-        }
-        if (params['materials'] !== undefined) {
-          this.protokollRequest.shelfmark = params['materials'];
-        }
-        if (this.protokollRequest.shelfmark !== '') {
+          if (params['collections'] !== undefined) {
+            this.protokollRequest.collections = params['collections'];
+          }
+          if (params['materials'] !== undefined) {
+            this.protokollRequest.shelfmark = params['materials'];
+          }
           this.collect();
         }
       }
@@ -147,54 +151,16 @@ export class AppComponent implements OnInit, OnDestroy {
   collect() {
     this.busy = true;
     this.queriedIdentifiers = new Set<string>();
+    this.printManifestations = new Map<string, PrintManifestation>();
+    this.digitalManifestations = new Map<string, DigitalManifestation>();
     this.status = 'collecting';
-    const typeOfIdentifier = this.getterService.setProtokollrequest(this.protokollRequest);
-    this.getterService.clearData();
-    this.isElectronic = (typeOfIdentifier === 'ebook');
+    this.protokollRequest.update();
+    this.isElectronic = (this.protokollRequest.getType() === 'ebook');
     if (this.isElectronic) {
       this.getDigitalManifestation();
     } else {
       this.getAllPrintManifestations();
     }
-  }
-
-  extendPrintManifestations() {
-    this.getterService.manifestations.forEach(
-      entry => {
-        let isbn = entry.bibliographicInformation.isbn.replace(/-/gi, '');
-        if (isbn.length > 13) {
-          if (isbn.startsWith('978')) {
-            isbn = isbn.substring(0, 13);
-          } else {
-            isbn = isbn.substring(0, 10);
-          }
-        }
-        if (!this.queriedIdentifiers.has(isbn)) {
-          this.queriedIdentifiers.add(isbn);
-          this.getterService.getPrimoResponse(isbn).subscribe(
-            data => data.electronic.forEach(
-              record => {
-                if (!this.queriedIdentifiers.has(record.isbn)) {
-                  this.getterService.getCounters(record.isbn).subscribe(
-                    digitalManifestation => this.getterService.digitalManifestation.push(digitalManifestation)
-                  );
-                }
-              }
-            )
-          );
-        }
-      });
-  }
-
-  extendDigitalManifestations() {
-    const recordIds = [];
-    this.getterService.digitalManifestation.forEach(
-      entry =>
-        recordIds.push(this.getterService.getPrimoResponse(entry.identifier).subscribe(
-          data => data.print.forEach(
-            record => this.getterService.buildFullManifestation(record.recordId).subscribe()
-          ))
-        ));
   }
 
   resetVariables() {
@@ -208,9 +174,7 @@ export class AppComponent implements OnInit, OnDestroy {
     this.isElectronic = false;
     this.activePart = 'graph';
     this.counterFound = false;
-    this.manifestationsFound = false;
-    this.getterService.manifestations = [];
-    this.manifestationsFound = false;
+    this.isPrint = false;
     this.filterList = new Map<string, boolean>();
     this.show = new Map<string, boolean>();
     this.show['editions'] = true;
@@ -223,34 +187,23 @@ export class AppComponent implements OnInit, OnDestroy {
   getAllPrintManifestations() {
     this.busy = true;
     this.resetVariables();
-    this.getterService.getFullManifestation().subscribe(
+    this.getterService.getAllPrintManifestations(this.protokollRequest).subscribe(
       data => {
-        this.getterService.manifestations = data;
-        if (this.getterService.manifestations.length === 0) {
-          this.messages.push({
-            severity: 'warn', summary: 'Fehler: ',
-            detail: this.translateService.instant('message.nothingFound')
-          });
-          this.activePart = '';
-          this.status = 'error';
-          this.busy = false;
-          this.index = this.getterService.manifestations.length - 1;
+        if (data.length === 0) {
+          this.sendError('nothingFound');
         } else {
-          this.initializeFilterLists();
+          data.forEach(entry => this.printManifestations.set(entry.titleID, entry));
+          this.index = data.length - 1;
+          this.initializePrintFilterLists();
           this.extendPrintManifestations();
+          this.isPrint = true;
         }
         this.primaryLoad = false;
       },
       error => {
-        this.busy = false;
-        this.status = 'error';
+        this.sendError('error');
         this.primaryLoad = false;
         console.log(error);
-        this.messages.push({
-          severity: 'error', summary: 'Fehler: ',
-          detail: this.translateService.instant('message.error')
-        });
-        this.activePart = '';
       }
     );
   }
@@ -258,48 +211,107 @@ export class AppComponent implements OnInit, OnDestroy {
   getDigitalManifestation() {
     this.busy = true;
     this.resetVariables();
-    this.getterService.getAllCounters().subscribe(
+    this.getterService.getAllDigitalManifestations(this.protokollRequest).subscribe(
       data => {
-        this.getterService.digitalManifestation = data;
-        if (this.getterService.digitalManifestation.length === 0) {
-          this.messages.push({
-            severity: 'warn', summary: 'Fehler: ',
-            detail: this.translateService.instant('message.nothingFound')
-          });
-          this.activePart = '';
-          this.busy = false;
-          this.index = this.getterService.digitalManifestation.length - 1;
+        if (data.length === 0) {
+          this.sendError('nothingFound');
+        } else {
+          this.isDigital = true;
+          data.forEach(entry => this.digitalManifestations.set(entry.identifier, entry));
+          this.index = data.length - 1;
+          this.convertCounterIntoPlotData();
+          this.extendDigitalManifestations();
         }
         this.primaryLoad = false;
         this.convertCounterIntoPlotData();
         this.extendDigitalManifestations();
       },
       error => {
-        this.busy = false;
+        this.sendError('error');
         this.primaryLoad = false;
-        this.messages.push({
-          severity: 'error', summary: 'Fehler: ',
-          detail: this.translateService.instant('message.error')
-        });
-        this.activePart = '';
+        console.log(error);
       }
     );
   }
 
-  initializeFilterLists() {
-    this.manifestationsFound = this.getterService.manifestations.length > 0;
+  extendPrintManifestations() {
+    this.printManifestations.forEach(
+      (value, key) => {
+        let isbn = value.bibliographicInformation.isbn.replace(/-/gi, '');
+        if (isbn.trim() !== '') {
+          if (isbn.length > 13) {
+            if (isbn.startsWith('978')) {
+              isbn = isbn.substring(0, 13);
+            } else {
+              isbn = isbn.substring(0, 10);
+            }
+          }
+          if (!this.queriedIdentifiers.has(isbn)) {
+            this.queriedIdentifiers.add(isbn);
+            this.getterService.getPrimoResponse(isbn).subscribe(
+              data => data.electronic.forEach(
+                record => {
+                  if (!this.queriedIdentifiers.has(record.isbn)) {
+                    this.getterService.getDigitalManifestation(record.isbn).subscribe(
+                      dm => this.digitalManifestations.set(dm.identifier, dm)
+                    );
+                  }
+                }
+              )
+            );
+          }
+        }
+      });
+  }
+
+  extendDigitalManifestations() {
+    const recordIds = [];
+    this.digitalManifestations.forEach(
+      (value, key) => {
+        if (key.trim() !== '') {
+          recordIds.push(this.getterService.getPrimoResponse(key).subscribe(
+            data => data.print.forEach(
+              record => this.getterService.getPrintManifestation(record.recordId).subscribe(
+                pm => this.printManifestations.set(record.recordId, pm)
+              )
+            )));
+        }
+      }
+    );
+  }
+
+  sendError(error: string) {
+    this.messages.push({
+      severity: 'warn', summary: 'Fehler: ',
+      detail: this.translateService.instant('message.' + error)
+    });
+    this.activePart = '';
+    this.status = 'error';
+    this.busy = false;
+  }
+
+  initializeDigitalFilterLists() {
+    this.digitalManifestations.forEach((value, key) => {
+      console.log(key);
+    });
+  }
+
+  initializePrintFilterLists() {
     const uniqueCollections = new Set<string>();
     const uniqueMaterials = new Set<string>();
-    this.getterService.manifestations.forEach(manifestation => {
-      this.filterList[manifestation.titleID] = true;
-      this.selectedManifestations.push(manifestation);
-      manifestation.collections.forEach(collection => {
+    this.digitalManifestations.forEach((value, key) => {
+      this.filterList[key] = true;
+    });
+    this.printManifestations.forEach((value, key) => {
+      this.filterList[key] = true;
+      this.selectedManifestations.push(value);
+      value.collections.forEach(collection => {
         if (!uniqueCollections.has(collection)) {
           uniqueCollections.add(collection);
           this.filterList[collection] = (collection !== '???');
         }
       });
-      manifestation.materials.forEach(material => {
+      value.materials.forEach(material => {
         if (!uniqueMaterials.has(material)) {
           uniqueMaterials.add(material);
           this.filterList[material] = true;
@@ -343,7 +355,6 @@ export class AppComponent implements OnInit, OnDestroy {
     this.statsCollection = new Map<string, number>();
     this.statsMaterials = new Map<string, number>();
     this.statsManifestations = new Map<string, number>();
-    this.statsSublibraries = new Map<string, number>();
     this.uniqueCollections.forEach(collection => this.statsCollection.set(collection, 0));
     this.uniqueMaterials.forEach(material => this.statsMaterials.set(material, 0));
     this.filteredManifestations = new Map<string, PrintManifestation>();
@@ -352,107 +363,109 @@ export class AppComponent implements OnInit, OnDestroy {
     this.selectedManifestations = [];
     this.selectedItems = [];
     this.selectedEvents = [];
-    for (const m of this.getterService.manifestations) {
-      this.statsManifestations.set(m.titleID, 0);
-      if (this.filterList[m.titleID]) {
-        this.selectedManifestations.push(m);
-        this.filteredManifestations[m.titleID] = m;
-        const filteredItemsInd: Item[] = [];
-        const filteredEventsInd: Event[] = [];
-        for (const item of m.items) {
-          if (this.filterList[item.collection] && this.filterList[item.material]) {
-            filteredItemsInd.push(item);
-            this.selectedItems.push(item);
-            if (item.deletionDate === '') {
-              let numberCollections = this.statsCollection.get(item.collection);
-              numberCollections++;
-              this.statsCollection.set(item.collection, numberCollections);
-              let numberMaterials = this.statsMaterials.get(item.material);
-              numberMaterials++;
-              this.statsMaterials.set(item.material, numberMaterials);
-              let numberManifestations = this.statsManifestations.get(m.titleID);
-              numberManifestations++;
-              this.statsManifestations.set(m.titleID, numberManifestations);
-            }
-            for (const event of item.events) {
-              if (!(event.type === 'inventory' || event.type === 'deletion') && event.borrowerStatus === '12') {
-                continue;
+    this.printManifestations.forEach(
+      (value, key) => {
+        this.statsManifestations.set(key, 0);
+        if (this.filterList[key]) {
+          this.selectedManifestations.push(value);
+          this.filteredManifestations[key] = value;
+          const filteredItemsInd: Item[] = [];
+          const filteredEventsInd: Event[] = [];
+          for (const item of value.items) {
+            if (this.filterList[item.collection] && this.filterList[item.material]) {
+              filteredItemsInd.push(item);
+              this.selectedItems.push(item);
+              if (item.deletionDate === '') {
+                let numberCollections = this.statsCollection.get(item.collection);
+                numberCollections++;
+                this.statsCollection.set(item.collection, numberCollections);
+                let numberMaterials = this.statsMaterials.get(item.material);
+                numberMaterials++;
+                this.statsMaterials.set(item.material, numberMaterials);
+                let numberManifestations = this.statsManifestations.get(key);
+                numberManifestations++;
+                this.statsManifestations.set(key, numberManifestations);
               }
-              filteredEventsInd.push(event);
-              this.selectedEvents.push(event);
-              if (event.endEvent != null) {
-                this.selectedEvents.push(event.endEvent);
+              for (const event of item.events) {
+                if (!(event.type === 'inventory' || event.type === 'deletion') && event.borrowerStatus === '12') {
+                  continue;
+                }
+                filteredEventsInd.push(event);
+                this.selectedEvents.push(event);
+                if (event.endEvent != null) {
+                  this.selectedEvents.push(event.endEvent);
+                }
               }
             }
           }
+          this.filteredItems[key] = filteredItemsInd;
+          this.filteredEvents[key] = filteredEventsInd;
         }
-        this.filteredItems[m.titleID] = filteredItemsInd;
-        this.filteredEvents[m.titleID] = filteredEventsInd;
-      }
-    }
+      });
     this.selectedEvents.sort(function (firstEvent, secondEvent) {
       return firstEvent.time === secondEvent.time ? 0 : +(firstEvent.time > secondEvent.time) || -1;
     });
   }
 
   updatePlotData() {
+    this.printData = new Map<string, number[][]>();
     if (this.selectedManifestations.length === 1) {
-      const manifestation: PrintManifestation = this.filteredManifestations[this.selectedManifestations[0].titleID];
+      const manifestation: PrintManifestation = this.filteredManifestations.get(this.selectedManifestations[0].titleID);
       this.title = manifestation.shelfmark + ' (' + manifestation.edition + '. Auflage)';
     } else {
       let title = '';
       this.selectedManifestations.forEach(manifestation => title = title + manifestation.shelfmark + ', ');
       this.title = title.substr(0, title.length - 2);
     }
-    this.plotData = new Map<string, number[][]>();
-    this.groupData = new Map<string, number[][]>();
-    for (const event of this.selectedEvents) {
-      this.addDatapointToMap(event, event.borrowerStatus, this.groupData);
-      if (event.type === 'loan' || event.type === 'return') {
-        this.addDatapointToMap(event, 'loans', this.plotData);
-      } else if (event.type === 'request' || event.type === 'hold') {
-        this.addDatapointToMap(event, 'requests', this.plotData);
-      } else if (event.type === 'inventory' || event.type === 'deletion') {
-        this.addDatapointToMap(event, 'stock', this.plotData);
-      } else if (event.type === 'cald' || event.type === 'caldDelivery') {
-        this.addDatapointToMap(event, 'cald', this.plotData);
+    switch (this.chartDetail) {
+      case 'overview': {
+        console.log('preparing data for overview');
+        for (const event of this.selectedEvents) {
+          if (event.type === 'loan' || event.type === 'return') {
+            this.addDatapointToMap(event, 'loans', this.printData);
+          } else if (event.type === 'request' || event.type === 'hold') {
+            this.addDatapointToMap(event, 'requests', this.printData);
+          } else if (event.type === 'inventory' || event.type === 'deletion') {
+            this.addDatapointToMap(event, 'stock', this.printData);
+          } else if (event.type === 'cald' || event.type === 'caldDelivery') {
+            this.addDatapointToMap(event, 'cald', this.printData);
+          }
+        }
+        break;
+      }
+      case 'groups': {
+        console.log('preparing data for grouped view');
+        for (const event of this.selectedEvents) {
+          if (event.type === 'request' || event.type === 'hold' || event.type === 'cald' || event.type === 'caldDelivery') {
+            continue;
+          } else if (event.type === 'inventory' || event.type === 'deletion') {
+            this.addDatapointToMap(event, 'stock', this.printData);
+          } else {
+            this.addDatapointToMap(event, event.borrowerStatus, this.printData);
+          }
+        }
+        break;
       }
     }
   }
 
   convertCounterIntoPlotData() {
     this.digitalData = new Map<string, number[][]>();
-    this.groupData = new Map<string, number[][]>();
-    this.getterService.digitalManifestation.forEach(
-      entry => {
-        this.title = entry.title;
+    this.digitalManifestations.forEach((value, key) => {
+      if (this.filteredDigitalManifestations.get(key)) {
+        this.title = value.title;
         let list: number[][] = [];
-        for (const counter of entry.usage) {
+        for (const counter of value.usage) {
           const date = new Date(counter.year, counter.month, 15);
           const values: number[] = [date.getTime(), counter.totalRequests];
           list.push(values);
         }
         list = list.sort((n1, n2) => n1[0] - n2[0]);
-        this.plotData[entry.identifier] = list;
+        this.digitalData.set(key, list);
         this.busy = false;
         this.counterFound = true;
-      });
-  }
-
-  addDatapointToMap(event: Event, classOfEvent: string, map: Map<string, number[][]>) {
-    if (event.time > 0) {
-      let list: number[][];
-      if ((typeof map[classOfEvent] === 'undefined')) {
-        list = [];
-        list.push([event.time, 1]);
-      } else {
-        list = map[classOfEvent];
-        const lastDatapoint = list[list.length - 1];
-        list.push([event.time, lastDatapoint[1]]);
-        list.push([event.time, lastDatapoint[1] + event.delta]);
       }
-      map[classOfEvent] = list;
-    }
+    });
   }
 
   toggleShow(part: string) {
@@ -469,12 +482,28 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   copyLink() {
-    const url = location.href.split('?')[0] + '?' + this.getterService.request.asUrlParamters();
+    const url = location.href.split('?')[0] + '?' + this.protokollRequest.asUrlParamters();
     this.clipboardService.copyFromContent(url);
     this.messageService.add({
       severity: 'success',
       summary: 'Link kopiert',
       detail: 'Der Link wurde in die Ziwschenablage eingefügt'
     });
+  }
+
+  addDatapointToMap(event: Event, classOfEvent: string, map: Map<string, number[][]>) {
+    if (event.time > 0) {
+      let list: number[][];
+      if ((typeof map.get(classOfEvent) === 'undefined')) {
+        list = [];
+        list.push([event.time, 1]);
+      } else {
+        list = map.get(classOfEvent);
+        const lastDatapoint = list[list.length - 1];
+        list.push([event.time, lastDatapoint[1]]);
+        list.push([event.time, lastDatapoint[1] + event.delta]);
+      }
+      map.set(classOfEvent, list);
+    }
   }
 }

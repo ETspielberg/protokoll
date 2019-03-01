@@ -6,7 +6,7 @@ import {DataTableModule} from 'primeng/components/datatable/datatable';
 import {
   TabMenuModule, ToggleButtonModule, DialogModule, InputTextModule,
   ButtonModule, TooltipModule, MessagesModule, CheckboxModule, PanelModule,
-  ScrollPanelModule, TabViewModule, AccordionModule
+  ScrollPanelModule, TabViewModule, AccordionModule, RadioButtonModule, SelectButtonModule
 } from 'primeng/primeng';
 import {FormsModule} from '@angular/forms';
 import {CommonModule, DecimalPipe} from '@angular/common';
@@ -38,6 +38,7 @@ import {MessageService} from 'primeng/api';
     MessagesModule,
     BrowserAnimationsModule,
     BrowserModule,
+    SelectButtonModule,
     CommonModule,
     ScrollPanelModule,
     TabViewModule,

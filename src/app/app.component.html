@@ -25,18 +25,18 @@
       <form (submit)="collect()" (keyup.enter)="collect()">
         <div class="ui-g-12 ui-lg-3">
         <span class="ui-float-label">
-        <input id="float-input" type="text" size="30" pInputText [(ngModel)]="protokollRequest.shelfmark"
+        <input id="float-input-jumbotron" type="text" size="30" pInputText [(ngModel)]="protokollRequest.shelfmark"
                [ngModelOptions]="{standalone: true}" autofocus
                pTooltip="Bitte Signatur eingeben" tooltipPosition="bottom">
-        <label for="float-input">{{'shelfmark' | translate}}</label>
+        <label for="float-input-jumbotron">{{'shelfmark' | translate}}</label>
         </span>
         </div>
         <div class="ui-g-12 ui-lg-3">
         <span class="ui-float-label">
-        <input [(ngModel)]="protokollRequest.collections" id="collections-primary" pInputText name="collections"
+        <input [(ngModel)]="protokollRequest.collections" id="collections-primary-jumbotron" pInputText name="collections"
                size="20" pTooltip="z.B. E31, E3, D45, E (mehrere durch Leerzeichen trennen)" tooltipPosition="bottom"
                [ngModelOptions]="{standalone: true}"/>
-        <label for="collections-primary">{{'collections' | translate}}</label>
+        <label for="collections-primary-jumbotron">{{'collections' | translate}}</label>
         </span>
         </div>
         <div class="ui-g-12 ui-lg-3">
@@ -59,16 +59,16 @@
 <div id="wrapper" *ngIf="!primaryLoad" class="ui-g">
   <div class="ui-g content">
     <div class="ui-md-2 ui-g-12 ui-g-nopad" *ngIf="show['filter']">
-      <div *ngIf="manifestationsFound">
+      <div *ngIf="isElectronic || isPrint">
         <p-scrollPanel [style]="{width: '100%', height: '100%'}">
           <h3 (click)="toggleShow('editions')">{{'editions' | translate}} <i
             [ngClass]="show['editions'] ? 'fa fa-caret-down' : 'fa fa-caret-right'"></i></h3>
           <div *ngIf="show['editions']" class="ui-g">
-            <div *ngFor="let m of getterService.manifestations" class="ui-g-12">
-              <p-checkbox [(ngModel)]="filterList[m.titleID]" binary="true" (onChange)="update()"
-                          label="{{m.edition}}. Auflage: {{m.shelfmark}}   <{{statsManifestations.get(m.titleID)}} Ex.>"
-                          pTooltip="{{m.bibliographicInformation.authors}}:
-          {{m.bibliographicInformation.title}}, {{m.bibliographicInformation.year}}."></p-checkbox>
+            <div *ngFor="let m of printManifestations | keyvalue" class="ui-g-12">
+              <p-checkbox [(ngModel)]="filterList[m.value.titleID]" binary="true" (onChange)="update()"
+                          label="{{m.value.edition}}. Auflage: {{m.value.shelfmark}}   <{{statsManifestations.get(m.value.titleID)}} Ex.>"
+                          pTooltip="{{m.value.bibliographicInformation.authors}}:
+          {{m.value.bibliographicInformation.title}}, {{m.value.bibliographicInformation.year}}."></p-checkbox>
             </div>
           </div>
           <h3 (click)="toggleShow('collections')">{{'collections' | translate}} <i
@@ -130,28 +130,36 @@
       </form>
       <p-messages [(value)]="messages" [closable]="false"></p-messages>
 
-      <div class="ui-g" *ngIf="(manifestationsFound && selectedItems.length > 0) || counterFound">
-        <p-tabMenu [model]="items" [activeItem]="items[0]"></p-tabMenu>
+      <div class="ui-g" *ngIf="(isPrint && selectedItems.length > 0) || counterFound">
+        <p-tabMenu [model]="items" [activeItem]="items[0]" class="ui-fluid"></p-tabMenu>
         <div class="ui-g-12 ui-md-12 ui-lg-12 tile-bottom">
           <h2>{{'title.' + activePart | translate}}</h2>
 
           <div *ngIf="activePart === 'bibliography'">
             <p-accordion [multiple]="true">
               <p-accordionTab header="{{m.edition}}. Auflage: {{m.shelfmark}}"
-                              *ngFor="let m of getterService.manifestations;  let index = index" [selected]="(index === 0)">
-                <div [innerHTML]="m.bibliographicInformation.fullDescription"></div>
+                              *ngFor="let m of printManifestations | keyvalue;  let index = index" [selected]="(index === 0)">
+                <div [innerHTML]="m.value.bibliographicInformation.fullDescription"></div>
                 <button pButton type="button" class="ui-button-success"
-                        (click)="goToPrimo(m.bibliographicInformation)"
+                        (click)="goToPrimo(m.value.bibliographicInformation)"
                         label="Titel in Primo anzeigen"></button>
               </p-accordionTab>
             </p-accordion>
           </div>
 
-          <app-graph [data]="plotData" [title]="title" [groups]="groupData" [isElectronic]="getterService.isElectronic" *ngIf="activePart === 'graph'"></app-graph>
+          <app-graph [title]="title" [print]="printData" [digital]="digitalData" *ngIf="activePart === 'graph'"></app-graph>
 
-          <app-statistics [data]="plotData" *ngIf="activePart === 'information'"></app-statistics>
+          <div class="ui-g-12" *ngIf="activePart === 'graph'">
+            <div class="ui-g ui-fluid">
+              <div class="ui-g-6 ui-g-offset-3">
+                <p-selectButton [options]="chartDetailsOptions" [(ngModel)]="chartDetail" (onChange)="updatePlotData()"></p-selectButton>
+              </div>
+            </div>
+          </div>
 
-          <app-analysis [data]="plotData" *ngIf="activePart === 'analysis'"></app-analysis>
+          <app-statistics [data]="printData" *ngIf="activePart === 'information'"></app-statistics>
+
+          <app-analysis [data]="printData" *ngIf="activePart === 'analysis'"></app-analysis>
 
           <p-dataTable #dt [value]="selectedItems" [rows]="10" [paginator]="true"
                        [rowsPerPageOptions]="[10,20,50]" *ngIf="activePart === 'items'">
@@ -206,6 +214,33 @@
               </ng-template>
             </p-column>
           </p-dataTable>
+
+          <p-dataTable #dc [value]="selectedCounter" [rows]="10" [paginator]="true"
+                       [rowsPerPageOptions]="[10,20,50]" *ngIf="activePart === 'usage'">
+            <p-header>
+              <div class="ui-helper-clearfix">
+                <button style="float: left;" class="ui-button-success" type="button" pButton
+                        (click)="dc.exportCSV()"
+                        label="Export" icon="fa-table"></button>
+              </div>
+            </p-header>
+            <p-column field="collection" header="Standort" [sortable]="true" [filter]="true"
+                      filterPlaceholder="Filter"></p-column>
+            <p-column field="shelfmark" header="Signatur" [sortable]="true" [filter]="true"
+                      filterPlaceholder="Filter"></p-column>
+            <p-column field="material" header="Medium" [sortable]="true" [filter]="true"
+                      filterPlaceholder="Filter"></p-column>
+            <p-column field="events.length" header="Ausleihen" [sortable]="true" [filter]="true"
+                      filterPlaceholder="Filter"></p-column>
+            <p-column field="itemStatus" header="Status" [sortable]="true" [filter]="true"
+                      filterPlaceholder="Filter">
+              <ng-template let-col let-item="rowData" pTemplate="body">
+                {{'item.status.' + item.itemStatus | translate}}{{'item.process.status.' + item.processStatus |
+                translate}} {{item.noteOpac}}
+              </ng-template>
+            </p-column>
+          </p-dataTable>
+
         </div>
       </div>
     </div>

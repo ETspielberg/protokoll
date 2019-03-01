@@ -4,6 +4,7 @@ export class Option {
 
   public title: object;
   public series: Dataset[];
+  public mode: string;
   public yAxis?: object;
   public xAxis?: object;
   public chart?: object;
@@ -24,7 +25,7 @@ export class Option {
   };
 
 
-  constructor(title: string, subtitle: string) {
+  constructor(title: string, subtitle: string, mode: string) {
     this.series = [];
     this.chart = {
       zoomType: 'xy'
@@ -39,24 +40,53 @@ export class Option {
     this.subtitle = {
       text: subtitle
     };
-    this.yAxis = [
-      {
-        title:
-          {
-            text: 'Anzahl'
-          },
-        min: 0,
-        allowDecimals: false
-      }, {
-        title:
-          {
-            text: 'Zugriffe'
-          },
-        min: 0,
-        allowDecimals: false,
-        opposite: true
+    switch (mode) {
+      case 'print': {
+        this.yAxis = [{
+          title:
+            {
+              text: 'Anzahl'
+            },
+          min: 0,
+          allowDecimals: false,
+          opposite: false
+        }];
+        break;
       }
-    ];
+      case 'digital' : {
+        this.yAxis = [{
+          title:
+            {
+              text: 'Zugriffe'
+            },
+          min: 0,
+          allowDecimals: false,
+          opposite: true
+        }];
+        break;
+      }
+      case 'both': {
+        this.yAxis = [
+          {
+            title:
+              {
+                text: 'Anzahl'
+              },
+            min: 0,
+            allowDecimals: false,
+            opposite: false
+          }, {
+            title:
+              {
+                text: 'Zugriffe'
+              },
+            min: 0,
+            allowDecimals: false,
+            opposite: true
+          }
+        ];
+      }
+    }
     this.colors = [
       '#AA4643',
       '#4572A7',
@@ -103,5 +133,4 @@ export class Option {
     this.exporting = {enabled: true};
     this.title = {text: title};
   }
-
 }

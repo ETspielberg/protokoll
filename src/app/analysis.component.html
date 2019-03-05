@@ -15,7 +15,6 @@
                 filterPlaceholder="Filter"></p-column>
       <p-column field="maxLoansAbs" header="Maximale Ausleihe"
                 filterPlaceholder="Filter"></p-column>
-      >
       <p-column field="lastStock" header="Ungenutzte Exemplare">
         <ng-template let-col let-eventanalysis="rowData" pTemplate="body">
           {{eventanalysis.lastStock - eventanalysis.maxLoansAbs}}

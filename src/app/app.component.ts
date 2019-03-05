@@ -14,6 +14,7 @@ import {MenuItem, MessageService, SelectItem} from 'primeng/api';
 import {TranslateService} from './translate';
 import {ClipboardService} from 'ngx-clipboard';
 import {DigitalManifestation} from './model/DigitalManifestation';
+import {EbookCounter} from './model/EbookCounter';
 
 
 @Component({
@@ -33,6 +34,8 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   index = 0;
+
+  private usergroupRegExp: RegExp = new RegExp('^[0-9]{2}');
 
   public printManifestations: Map<string, PrintManifestation>;
 
@@ -54,7 +57,7 @@ export class AppComponent implements OnInit, OnDestroy {
 
   protokollRequest: ProtokollRequest;
 
-  public filterList: Map<string, boolean>;
+  public filterList: object;
 
   private filteredItems: Map<string, Item[]>;
 
@@ -62,7 +65,7 @@ export class AppComponent implements OnInit, OnDestroy {
 
   private filteredManifestations: Map<string, PrintManifestation>;
 
-  private filteredDigitalManifestations: Map<string, DigitalManifestation>;
+  private selectedDigitalUsage: Map<string, EbookCounter>;
 
   private queriedIdentifiers: Set<string>;
 
@@ -76,7 +79,9 @@ export class AppComponent implements OnInit, OnDestroy {
 
   public statsManifestations: Map<string, number>;
 
-  public selectedManifestations: PrintManifestation[];
+  public selectedPrintManifestations: PrintManifestation[];
+
+  public selectedDigitalManifestations: DigitalManifestation[];
 
   public selectedEvents: Event[];
 
@@ -86,7 +91,7 @@ export class AppComponent implements OnInit, OnDestroy {
 
   isElectronic: boolean;
 
-  public show: Map<string, boolean>;
+  public show: object;
 
   private subscription: Subscription;
 
@@ -103,7 +108,6 @@ export class AppComponent implements OnInit, OnDestroy {
   chartDetail = 'overview';
 
   chartDetails = ['overview', 'groups'];
-
 
   chartDetailsOptions: SelectItem[] = [];
 
@@ -161,13 +165,24 @@ export class AppComponent implements OnInit, OnDestroy {
     } else {
       this.getAllPrintManifestations();
     }
+    this.filterTabs();
+  }
+
+  filterTabs() {
+    if (!this.printData) {
+      this.items.filter((entry, index) => entry.id !== ('information' || 'items' || 'events' || 'analysis'));
+    } else if (!this.digitalData) {
+      this.items.filter((entry, index) => entry.id !== ('usage'));
+    }
   }
 
   resetVariables() {
     this.filteredManifestations = new Map<string, PrintManifestation>();
     this.filteredItems = new Map<string, Item[]>();
     this.filteredEvents = new Map<string, Event[]>();
-    this.selectedManifestations = [];
+    this.selectedDigitalUsage = new Map<string, EbookCounter>();
+    this.selectedPrintManifestations = [];
+    this.selectedDigitalManifestations = [];
     this.selectedItems = [];
     this.selectedEvents = [];
     this.messages = [];
@@ -175,13 +190,14 @@ export class AppComponent implements OnInit, OnDestroy {
     this.activePart = 'graph';
     this.counterFound = false;
     this.isPrint = false;
-    this.filterList = new Map<string, boolean>();
-    this.show = new Map<string, boolean>();
+    this.filterList = {};
+    this.show = {};
     this.show['editions'] = true;
     this.show['collections'] = true;
     this.show['materials'] = true;
     this.show['usergroups'] = false;
     this.show['filter'] = true;
+    this.show['digital'] = true;
   }
 
   getAllPrintManifestations() {
@@ -217,7 +233,10 @@ export class AppComponent implements OnInit, OnDestroy {
           this.sendError('nothingFound');
         } else {
           this.isDigital = true;
-          data.forEach(entry => this.digitalManifestations.set(entry.identifier, entry));
+          data.forEach(record => {
+            this.digitalManifestations.set(record.identifier, record);
+            this.filterList[record.identifier] = true;
+          });
           this.index = data.length - 1;
           this.convertCounterIntoPlotData();
           this.extendDigitalManifestations();
@@ -249,19 +268,26 @@ export class AppComponent implements OnInit, OnDestroy {
           if (!this.queriedIdentifiers.has(isbn)) {
             this.queriedIdentifiers.add(isbn);
             this.getterService.getPrimoResponse(isbn).subscribe(
-              data => data.electronic.forEach(
-                record => {
-                  if (!this.queriedIdentifiers.has(record.isbn)) {
-                    this.getterService.getDigitalManifestation(record.isbn).subscribe(
-                      dm => this.digitalManifestations.set(dm.identifier, dm)
-                    );
+              data => {
+                data.electronic.forEach(
+                  record => {
+                    if (!this.queriedIdentifiers.has(record.isbn)) {
+                      this.getterService.getDigitalManifestation(record.isbn).subscribe(
+                        dm => {
+                          this.filterList[dm.identifier] = true;
+                          this.digitalManifestations.set(dm.identifier, dm);
+                        }, error => console.log(error),
+                        () => this.convertCounterIntoPlotData()
+                      );
+                    }
                   }
-                }
-              )
+                );
+              }
             );
           }
         }
       });
+
   }
 
   extendDigitalManifestations() {
@@ -270,11 +296,28 @@ export class AppComponent implements OnInit, OnDestroy {
       (value, key) => {
         if (key.trim() !== '') {
           recordIds.push(this.getterService.getPrimoResponse(key).subscribe(
-            data => data.print.forEach(
-              record => this.getterService.getPrintManifestation(record.recordId).subscribe(
-                pm => this.printManifestations.set(record.recordId, pm)
-              )
-            )));
+            data => {
+              data.electronic.forEach(
+                record => {
+                  if (!this.queriedIdentifiers.has(record.isbn)) {
+                    this.getterService.getDigitalManifestation(record.isbn).subscribe(
+                      pm => this.digitalManifestations.set(record.isbn, pm),
+                      error => console.log('found no additional electronic resources')
+                    );
+                  }
+                }
+              );
+              data.print.forEach(
+                record => {
+                  if (!this.queriedIdentifiers.has(record.isbn)) {
+                    this.getterService.getPrintManifestation(record.recordId).subscribe(
+                      pm => this.printManifestations.set(record.recordId, pm),
+                      error => console.log('found no printed resources')
+                    );
+                  }
+                }
+              );
+            }));
         }
       }
     );
@@ -290,21 +333,17 @@ export class AppComponent implements OnInit, OnDestroy {
     this.busy = false;
   }
 
-  initializeDigitalFilterLists() {
-    this.digitalManifestations.forEach((value, key) => {
-      console.log(key);
-    });
-  }
-
   initializePrintFilterLists() {
     const uniqueCollections = new Set<string>();
     const uniqueMaterials = new Set<string>();
+    this.selectedDigitalUsage = new Map<string, EbookCounter>();
     this.digitalManifestations.forEach((value, key) => {
       this.filterList[key] = true;
+      this.selectedDigitalManifestations.push(value);
     });
     this.printManifestations.forEach((value, key) => {
       this.filterList[key] = true;
-      this.selectedManifestations.push(value);
+      this.selectedPrintManifestations.push(value);
       value.collections.forEach(collection => {
         if (!uniqueCollections.has(collection)) {
           uniqueCollections.add(collection);
@@ -348,6 +387,7 @@ export class AppComponent implements OnInit, OnDestroy {
   update() {
     this.updateFilteredLists();
     this.updatePlotData();
+    this.convertCounterIntoPlotData();
     this.busy = false;
   }
 
@@ -355,19 +395,21 @@ export class AppComponent implements OnInit, OnDestroy {
     this.statsCollection = new Map<string, number>();
     this.statsMaterials = new Map<string, number>();
     this.statsManifestations = new Map<string, number>();
+    this.selectedDigitalUsage = new Map<string, EbookCounter>();
     this.uniqueCollections.forEach(collection => this.statsCollection.set(collection, 0));
     this.uniqueMaterials.forEach(material => this.statsMaterials.set(material, 0));
     this.filteredManifestations = new Map<string, PrintManifestation>();
     this.filteredItems = new Map<string, Item[]>();
     this.filteredEvents = new Map<string, Event[]>();
-    this.selectedManifestations = [];
+    this.selectedPrintManifestations = [];
+    this.selectedDigitalManifestations = [];
     this.selectedItems = [];
     this.selectedEvents = [];
     this.printManifestations.forEach(
       (value, key) => {
         this.statsManifestations.set(key, 0);
         if (this.filterList[key]) {
-          this.selectedManifestations.push(value);
+          this.selectedPrintManifestations.push(value);
           this.filteredManifestations[key] = value;
           const filteredItemsInd: Item[] = [];
           const filteredEventsInd: Event[] = [];
@@ -409,17 +451,16 @@ export class AppComponent implements OnInit, OnDestroy {
 
   updatePlotData() {
     this.printData = new Map<string, number[][]>();
-    if (this.selectedManifestations.length === 1) {
-      const manifestation: PrintManifestation = this.filteredManifestations.get(this.selectedManifestations[0].titleID);
+    if (this.selectedPrintManifestations.length === 1) {
+      const manifestation: PrintManifestation = this.filteredManifestations[this.selectedPrintManifestations[0].titleID];
       this.title = manifestation.shelfmark + ' (' + manifestation.edition + '. Auflage)';
     } else {
       let title = '';
-      this.selectedManifestations.forEach(manifestation => title = title + manifestation.shelfmark + ', ');
+      this.selectedPrintManifestations.forEach(manifestation => title = title + manifestation.shelfmark + ', ');
       this.title = title.substr(0, title.length - 2);
     }
     switch (this.chartDetail) {
       case 'overview': {
-        console.log('preparing data for overview');
         for (const event of this.selectedEvents) {
           if (event.type === 'loan' || event.type === 'return') {
             this.addDatapointToMap(event, 'loans', this.printData);
@@ -434,10 +475,8 @@ export class AppComponent implements OnInit, OnDestroy {
         break;
       }
       case 'groups': {
-        console.log('preparing data for grouped view');
         for (const event of this.selectedEvents) {
           if (event.type === 'request' || event.type === 'hold' || event.type === 'cald' || event.type === 'caldDelivery') {
-            continue;
           } else if (event.type === 'inventory' || event.type === 'deletion') {
             this.addDatapointToMap(event, 'stock', this.printData);
           } else {
@@ -452,7 +491,7 @@ export class AppComponent implements OnInit, OnDestroy {
   convertCounterIntoPlotData() {
     this.digitalData = new Map<string, number[][]>();
     this.digitalManifestations.forEach((value, key) => {
-      if (this.filteredDigitalManifestations.get(key)) {
+      if (this.filterList[key]) {
         this.title = value.title;
         let list: number[][] = [];
         for (const counter of value.usage) {
@@ -462,6 +501,15 @@ export class AppComponent implements OnInit, OnDestroy {
         }
         list = list.sort((n1, n2) => n1[0] - n2[0]);
         this.digitalData.set(key, list);
+        this.selectedDigitalManifestations.push(value);
+        for (const counter of value.usage) {
+          const keyTest = counter.year + '-' + counter.month;
+          if (this.selectedDigitalUsage.has(keyTest)) {
+            this.selectedDigitalUsage.get(keyTest).totalRequests += counter.totalRequests;
+          } else {
+            this.selectedDigitalUsage.set(keyTest, counter);
+          }
+        }
         this.busy = false;
         this.counterFound = true;
       }

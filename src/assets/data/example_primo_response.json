@@ -1,0 +1,20 @@
+{
+"print": [{
+  "recordId": "000823223",
+  "isbn": "3-486-25580-0",
+  "type": "print",
+  "title": "Datenbanken im Unternehmen",
+  "authors": "Günther Pernul ; Rainer Unland",
+  "edition": "1",
+  "year": "2001"
+}],
+  "electronic": [{
+    "recordId": "0008293480",
+    "isbn": "978-3-2475-3879-3",
+    "type": "digital",
+    "title": "Adorno und Bourdieu",
+    "authors": "Max Mustermann",
+    "edition": "2",
+    "year": "2004"
+  }]
+}

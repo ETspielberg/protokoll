@@ -87,6 +87,14 @@
                           label="{{'material.' + m | translate}} <{{statsMaterials.get(m)}} Ex.>"></p-checkbox>
             </div>
           </div>
+          <h3 (click)="toggleShow('digital')">{{'E-Books'}} <i
+            [ngClass]="show['digital'] ? 'fa fa-caret-down' : 'fa fa-caret-right'"></i></h3>
+          <div *ngIf="show['digital']" class="ui-g">
+            <div *ngFor="let m of digitalManifestations | keyvalue" class="ui-g-12">
+              <p-checkbox [(ngModel)]="filterList[m.value.identifier]" binary="true" (onChange)="update()"
+                          label="{{m.value.identifier}}"></p-checkbox>
+            </div>
+          </div>
         </p-scrollPanel>
       </div>
     </div>
@@ -147,7 +155,7 @@
             </p-accordion>
           </div>
 
-          <app-graph [title]="title" [print]="printData" [digital]="digitalData" *ngIf="activePart === 'graph'"></app-graph>
+          <app-graph [title]="title" [groups]="chartDetail" [print]="printData" [digital]="digitalData" *ngIf="activePart === 'graph'"></app-graph>
 
           <div class="ui-g-12" *ngIf="activePart === 'graph'">
             <div class="ui-g ui-fluid">
@@ -215,7 +223,7 @@
             </p-column>
           </p-dataTable>
 
-          <p-dataTable #dc [value]="selectedCounter" [rows]="10" [paginator]="true"
+          <p-dataTable #dc [value]="selectedDigitalUsage | keyvalue" [rows]="10" [paginator]="true"
                        [rowsPerPageOptions]="[10,20,50]" *ngIf="activePart === 'usage'">
             <p-header>
               <div class="ui-helper-clearfix">
@@ -224,21 +232,12 @@
                         label="Export" icon="fa-table"></button>
               </div>
             </p-header>
-            <p-column field="collection" header="Standort" [sortable]="true" [filter]="true"
+            <p-column field="value.year" header="Jahr" [sortable]="true" [filter]="true"
                       filterPlaceholder="Filter"></p-column>
-            <p-column field="shelfmark" header="Signatur" [sortable]="true" [filter]="true"
+            <p-column field="value.month" header="Monat" [sortable]="true" [filter]="true"
                       filterPlaceholder="Filter"></p-column>
-            <p-column field="material" header="Medium" [sortable]="true" [filter]="true"
+            <p-column field="value.totalRequests" header="Medium" [sortable]="true" [filter]="true"
                       filterPlaceholder="Filter"></p-column>
-            <p-column field="events.length" header="Ausleihen" [sortable]="true" [filter]="true"
-                      filterPlaceholder="Filter"></p-column>
-            <p-column field="itemStatus" header="Status" [sortable]="true" [filter]="true"
-                      filterPlaceholder="Filter">
-              <ng-template let-col let-item="rowData" pTemplate="body">
-                {{'item.status.' + item.itemStatus | translate}}{{'item.process.status.' + item.processStatus |
-                translate}} {{item.noteOpac}}
-              </ng-template>
-            </p-column>
           </p-dataTable>
 
         </div>

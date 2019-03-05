@@ -33,9 +33,9 @@ export class StatisticsComponent {
   reset() {
     this.statistics = new Map<number, Statistics>();
     this.statisticsList = [];
-    const stocks = this.plotData['stock'];
+    const stocks = this.plotData.get('stock');
     if (typeof stocks !== 'undefined') {
-      const requests = this.plotData['requests'];
+      const requests = this.plotData.get('requests');
       const oldDate = new Date(stocks[0][0]);
       let year;
       if (typeof requests !== 'undefined') {
@@ -65,7 +65,7 @@ export class StatisticsComponent {
   }
 
   private fillAnalysisFields(plotData: Map<string, Datapoint[]>, type: string, actualYear: number) {
-    const series = plotData[type];
+    const series = plotData.get(type);
     if (series === undefined) {
       return;
     } else if (series.length === 0) {

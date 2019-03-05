@@ -24,16 +24,17 @@ export class GraphComponent implements OnInit {
 
   options: Option;
 
-  mode = 'print';
+  mode = 'both';
 
   modes = ['print', 'digital', 'both'];
 
   modeOptions: SelectItem[] = [];
 
+  groupedDetails: string;
+
   private printData = new Map<string, number[][]>();
   private digitalData = new Map<string, number[][]>();
 
-  private usergroupRegExp: RegExp = new RegExp('^[0-9]{2}');
 
   constructor(private translateService: TranslateService) {
   }
@@ -61,7 +62,24 @@ export class GraphComponent implements OnInit {
     if (this.printData) {
       this.setOptions();
     }
+  }
 
+  @Input()
+  get groups() {
+    this.setOptions();
+    return this.groupedDetails;
+  }
+
+  set groups(val) {
+    this.groupedDetails = val;
+    if (this.groupedDetails === 'groups') {
+      this.mode = 'print';
+    } else {
+      this.mode = 'both';
+    }
+    if (this.printData) {
+      this.setOptions();
+    }
   }
 
   @Input()
@@ -94,7 +112,6 @@ export class GraphComponent implements OnInit {
         break;
       }
       case 'digital': {
-        console.log('digital data: ' + this.digitalData);
         this.updateChartObjectFromMap(this.digitalData);
         break;
       }
@@ -106,40 +123,61 @@ export class GraphComponent implements OnInit {
     }
   }
 
+  getList(map) {
+
+  }
+
   updateChartObjectFromMap(map: Map<string, number[][]>) {
     if (map) {
       map.forEach((value: number[][], key: string) => {
         const datapoints = value;
         datapoints.push([new Date().getTime(), datapoints[datapoints.length - 1][1]]);
-        const dataset: Dataset = new Dataset(this.translateService.instant('series.' + key), datapoints);
+        let dataset: Dataset;
         if (key === 'loans') {
+          dataset = new Dataset(this.translateService.instant('series.loans'), datapoints);
           dataset.color = '#4572A7';
           dataset.zIndex = 2;
           dataset.yAxis = 0;
           dataset.type = 'area';
         } else if (key === 'stock') {
-          dataset.color = '#dfe4f2';
+          dataset = new Dataset(this.translateService.instant('series.stock'), datapoints);
+
           dataset.zIndex = 1;
           dataset.yAxis = 0;
-          dataset.type = 'area';
+          if (this.groupedDetails === 'groups') {
+            dataset.type = 'line';
+            dataset.color = 'black';
+          } else {
+            dataset.type = 'area';
+            dataset.color = '#dfe4f2';
+          }
         } else if (key === 'requests') {
+          dataset = new Dataset(this.translateService.instant('series.requests'), datapoints);
           dataset.color = '#89A54E';
           dataset.zIndex = 3;
           dataset.yAxis = 0;
           dataset.type = 'area';
         } else if (key === 'cald') {
+          dataset = new Dataset(this.translateService.instant('series.cald'), datapoints);
           dataset.color = '#80699B';
           dataset.zIndex = 4;
           dataset.yAxis = 0;
           dataset.type = 'area';
         } else if (key.startsWith('978')) {
+          dataset = new Dataset(this.translateService.instant(key), datapoints);
           dataset.color = '#AA4643';
           dataset.zIndex = 0;
-          dataset.yAxis = 1;
+          if (this.mode === 'digital') {
+            dataset.yAxis = 0;
+          } else {
+            dataset.yAxis = 1;
+          }
           dataset.type = 'column';
         } else {
+          dataset = new Dataset(this.translateService.instant('series.' + key), datapoints);
           dataset.type = 'area';
           dataset.yAxis = 0;
+          dataset.zIndex = +key;
         }
         this.options.series.push(dataset);
       });

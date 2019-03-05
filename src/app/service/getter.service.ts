@@ -15,7 +15,7 @@ export class GetterService {
   }
 
   getAllDigitalManifestations(protokollRequest: ProtokollRequest): Observable<DigitalManifestation[]> {
-    const url = 'assets/data/example_ebookcounter.json';
+    const url = 'assets/data/example_digital_manifestations.json';
     // const url = appGlobals.counterretrievalUrl + '/getForIsbn?isbn=' + protokollRequest.shelfmark.replace(' ', ';');
     return this.http.get<DigitalManifestation[]>(url);
   }
@@ -27,7 +27,8 @@ export class GetterService {
   }
 
   getPrimoResponse(identifier: string): Observable<PrimoResponse> {
-    const url = appGlobals.getterUrl + '/getPrimoResponse/' + identifier.trim();
+    const url = '/assets/data/example_primo_response.json';
+    // const url = appGlobals.getterUrl + '/getPrimoResponse/' + identifier.trim();
     return this.http.get<PrimoResponse>(url);
   }
 

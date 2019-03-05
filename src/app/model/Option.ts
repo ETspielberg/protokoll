@@ -40,32 +40,7 @@ export class Option {
     this.subtitle = {
       text: subtitle
     };
-    switch (mode) {
-      case 'print': {
-        this.yAxis = [{
-          title:
-            {
-              text: 'Anzahl'
-            },
-          min: 0,
-          allowDecimals: false,
-          opposite: false
-        }];
-        break;
-      }
-      case 'digital' : {
-        this.yAxis = [{
-          title:
-            {
-              text: 'Zugriffe'
-            },
-          min: 0,
-          allowDecimals: false,
-          opposite: true
-        }];
-        break;
-      }
-      case 'both': {
+
         this.yAxis = [
           {
             title:
@@ -85,8 +60,6 @@ export class Option {
             opposite: true
           }
         ];
-      }
-    }
     this.colors = [
       '#AA4643',
       '#4572A7',

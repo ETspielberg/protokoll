@@ -1,13 +1,17 @@
-import {Component, Input} from '@angular/core';
+import {Component, Input, OnInit} from '@angular/core';
 import {Eventanalysis} from './model/Eventanalysis';
 import {Datapoint} from './model/Datapoint';
+import {TranslateService} from './translate';
 
 @Component({
   selector: 'app-analysis',
   templateUrl: 'analysis.component.html'
 })
 
-export class AnalysisComponent {
+export class AnalysisComponent implements OnInit {
+
+  constructor(private translateService: TranslateService) {
+  }
 
   public eventanalysiss: Map<number, Eventanalysis>;
 
@@ -23,17 +27,25 @@ export class AnalysisComponent {
 
   public yearsOfLoans: number;
 
-  @Input()
-  get data() {
-    if (this.plotData !== null) {
+  ngOnInit() {
+    this.analyses = [];
+    this.staticBuffer = 20;
+    this.deletionProposal = 0;
+    this.yearsOfLoans = 5;
+    if (this.plotData) {
       this.reset();
     }
+  }
+
+  @Input()
+  get data() {
+    this.reset();
     return this.plotData;
   }
 
   set data(val) {
     this.plotData = val;
-    if (val !== null) {
+    if (this.plotData) {
       this.reset();
     }
   }
@@ -44,9 +56,9 @@ export class AnalysisComponent {
     this.staticBuffer = 20;
     this.deletionProposal = 0;
     this.yearsOfLoans = 5;
-    const stocks = this.plotData['stock'];
+    const stocks = this.plotData.get('stock');
     if (typeof stocks !== 'undefined') {
-      const requests = this.plotData['requests'];
+      const requests = this.plotData.get('requests');
       const oldDate = new Date(stocks[0][0]);
       let year;
       if (typeof requests !== 'undefined') {
@@ -92,8 +104,8 @@ export class AnalysisComponent {
     const yearInMillis = 365 * dayInMillis;
     const today = new Date().getTime();
     const startDateLoans = today - yearsOfLoans * yearInMillis;
-    const loans = plotData['loans'];
-    const stock = plotData['stock'];
+    const loans = plotData.get('loans');
+    const stock = plotData.get('stock');
     eventanalysis.lastStock = stock[stock.length - 1][1];
     let timeLoaned = 0;
     let timeStock = 0;

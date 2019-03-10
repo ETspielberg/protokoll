@@ -6,7 +6,7 @@ import {DataTableModule} from 'primeng/components/datatable/datatable';
 import {
   TabMenuModule, ToggleButtonModule, DialogModule, InputTextModule,
   ButtonModule, TooltipModule, MessagesModule, CheckboxModule, PanelModule,
-  ScrollPanelModule, TabViewModule, AccordionModule, RadioButtonModule, SelectButtonModule
+  ScrollPanelModule, TabViewModule, AccordionModule, SelectButtonModule
 } from 'primeng/primeng';
 import {FormsModule} from '@angular/forms';
 import {CommonModule, DecimalPipe} from '@angular/common';
@@ -25,10 +25,12 @@ import {GraphComponent} from './graph.component';
 import {HighchartsChartModule} from 'highcharts-angular';
 import {ClipboardModule, ClipboardService} from 'ngx-clipboard';
 import {MessageService} from 'primeng/api';
+import {VirtualScrollerModule} from "primeng/virtualscroller";
 
 @NgModule({
   imports: [HttpClientModule,
     HighchartsChartModule,
+    VirtualScrollerModule,
     ButtonModule,
     TooltipModule,
     InputTextModule,

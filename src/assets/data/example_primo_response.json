@@ -6,7 +6,10 @@
   "title": "Datenbanken im Unternehmen",
   "authors": "Günther Pernul ; Rainer Unland",
   "edition": "1",
-  "year": "2001"
+  "year": "2001",
+  "link": "https://primo.ub.uni-due.de/primo-explore/fulldisplay?context=L&vid=UDE_NUI&search_scope=LocalUDE&isFrbr=true&tab=localude&lang=de_DE&docid=UDEALEPH018493916",
+  "thumbnailLink": "https://proxy-eu.hosted.exlibrisgroup.com/exl_rewrite/syndetics.com/index.aspx?isbn=3110240238/SC.JPG&client=primo",
+  "fulltextLink": ""
 }],
   "electronic": [{
     "recordId": "0008293480",
@@ -15,6 +18,9 @@
     "title": "Adorno und Bourdieu",
     "authors": "Max Mustermann",
     "edition": "2",
-    "year": "2004"
+    "year": "2004",
+    "link": "https://primo.ub.uni-due.de/primo-explore/fulldisplay?context=L&vid=UDE_NUI&search_scope=LocalUDE&isFrbr=true&tab=localude&lang=de_DE&docid=UDEALEPH019859500",
+    "thumbnailLink": "",
+    "fulltextLink": "https://doi.org/10.1515/9783110240238"
   }]
 }

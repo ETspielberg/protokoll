@@ -5,7 +5,7 @@
 export class BibliographicInformation {
 
     constructor(
-      public docNumber: string,
+      public titleId: string,
       public isbn: string,
       public doi: string,
       public authors: string[],

@@ -149,7 +149,7 @@ export class GraphComponent implements OnInit {
             dataset.color = 'black';
           } else {
             dataset.type = 'area';
-            dataset.color = '#dfe4f2';
+            dataset.color = '#7e91a7';
           }
         } else if (key === 'requests') {
           dataset = new Dataset(this.translateService.instant('series.requests'), datapoints);
@@ -163,15 +163,11 @@ export class GraphComponent implements OnInit {
           dataset.zIndex = 4;
           dataset.yAxis = 0;
           dataset.type = 'area';
-        } else if (key.startsWith('978')) {
+        } else if (key.startsWith('978') || key.length > 2) {
           dataset = new Dataset(this.translateService.instant(key), datapoints);
           dataset.color = '#AA4643';
           dataset.zIndex = 0;
-          if (this.mode === 'digital') {
-            dataset.yAxis = 0;
-          } else {
             dataset.yAxis = 1;
-          }
           dataset.type = 'column';
         } else {
           dataset = new Dataset(this.translateService.instant('series.' + key), datapoints);

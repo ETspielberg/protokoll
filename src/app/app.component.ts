@@ -9,12 +9,12 @@ import {Event} from './model/Event';
 import {ActivatedRoute, Params, Router} from '@angular/router';
 import {Subscription} from 'rxjs/Subscription';
 import 'rxjs/add/operator/switchMap';
-import {BibliographicInformation} from './model/BibliographicInformation';
 import {MenuItem, MessageService, SelectItem} from 'primeng/api';
 import {TranslateService} from './translate';
 import {ClipboardService} from 'ngx-clipboard';
 import {DigitalManifestation} from './model/DigitalManifestation';
 import {EbookCounter} from './model/EbookCounter';
+import {PrimoData} from './model/PrimoData';
 
 
 @Component({
@@ -35,11 +35,11 @@ export class AppComponent implements OnInit, OnDestroy {
 
   index = 0;
 
-  private usergroupRegExp: RegExp = new RegExp('^[0-9]{2}');
-
   public printManifestations: Map<string, PrintManifestation>;
 
   public digitalManifestations: Map<string, DigitalManifestation>;
+
+  public primoData: Map<string, PrimoData>;
 
   printData: Map<string, number[][]>;
 
@@ -111,7 +111,7 @@ export class AppComponent implements OnInit, OnDestroy {
 
   chartDetailsOptions: SelectItem[] = [];
 
-  private tabs: string[] = ['graph', 'usage', 'bibliography', 'information', 'items', 'events', 'analysis'];
+  private tabs: string[] = ['graph', 'bibliography', 'information', 'usage', 'items', 'events', 'analysis'];
 
   ngOnInit(): void {
     this.translateService.use('de');
@@ -131,7 +131,6 @@ export class AppComponent implements OnInit, OnDestroy {
     });
     this.activeItem = this.items[0];
     this.activePart = this.activeItem.id;
-    this.resetVariables();
     this.protokollRequest = new ProtokollRequest();
     this.route.queryParams.subscribe((params: Params) => {
         if (params['shelfmark'] !== undefined) {
@@ -154,10 +153,8 @@ export class AppComponent implements OnInit, OnDestroy {
 
   collect() {
     this.busy = true;
-    this.queriedIdentifiers = new Set<string>();
-    this.printManifestations = new Map<string, PrintManifestation>();
-    this.digitalManifestations = new Map<string, DigitalManifestation>();
     this.status = 'collecting';
+    this.reset();
     this.protokollRequest.update();
     this.isElectronic = (this.protokollRequest.getType() === 'ebook');
     if (this.isElectronic) {
@@ -168,15 +165,46 @@ export class AppComponent implements OnInit, OnDestroy {
     this.filterTabs();
   }
 
+  collectPrimoResponses() {
+    this.queriedIdentifiers.forEach(
+      identifier => {
+        if (!this.primoData.has(identifier)) {
+          this.getterService.getPrimoResponse(identifier).subscribe(
+            data => {
+              data.electronic.forEach(
+                entry => {
+                  if (!this.primoData.has(entry.isbn)) {
+                    this.primoData.set(entry.isbn, entry);
+                  }
+                }
+              );
+              data.print.forEach(
+                entry => {
+                  if (!this.primoData.has(entry.recordId)) {
+                    this.primoData.set(entry.recordId, entry);
+                  }
+                }
+              );
+              this.extendManifestations();
+            }
+          );
+        }
+      });
+  }
+
   filterTabs() {
     if (!this.printData) {
-      this.items.filter((entry, index) => entry.id !== ('information' || 'items' || 'events' || 'analysis'));
+      this.items.filter((entry) => entry.id !== ('information' || 'items' || 'events' || 'analysis'));
     } else if (!this.digitalData) {
-      this.items.filter((entry, index) => entry.id !== ('usage'));
+      this.items.filter((entry) => entry.id !== ('usage'));
     }
   }
 
-  resetVariables() {
+  reset() {
+    this.queriedIdentifiers = new Set<string>();
+    this.primoData = new Map<string, PrimoData>();
+    this.printManifestations = new Map<string, PrintManifestation>();
+    this.digitalManifestations = new Map<string, DigitalManifestation>();
     this.filteredManifestations = new Map<string, PrintManifestation>();
     this.filteredItems = new Map<string, Item[]>();
     this.filteredEvents = new Map<string, Event[]>();
@@ -201,23 +229,37 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   getAllPrintManifestations() {
-    this.busy = true;
-    this.resetVariables();
     this.getterService.getAllPrintManifestations(this.protokollRequest).subscribe(
       data => {
         if (data.length === 0) {
-          this.sendError('nothingFound');
+          this.sendMessage('error', 'nothingFound');
         } else {
-          data.forEach(entry => this.printManifestations.set(entry.titleID, entry));
+          data.forEach(entry => {
+            this.printManifestations.set(entry.titleID, entry);
+            this.filterList[entry.titleID] = true;
+            this.queriedIdentifiers.add(entry.titleID);
+            let isbn = entry.bibliographicInformation.isbn.replace(/-/gi, '');
+            if (isbn.trim() !== '') {
+              if (isbn.length > 13) {
+                if (isbn.startsWith('978')) {
+                  isbn = isbn.substring(0, 13);
+                } else {
+                  isbn = isbn.substring(0, 10);
+                }
+              }
+              this.queriedIdentifiers.add(isbn);
+            }
+          });
           this.index = data.length - 1;
           this.initializePrintFilterLists();
-          this.extendPrintManifestations();
+          this.collectPrimoResponses();
+
           this.isPrint = true;
         }
         this.primaryLoad = false;
       },
       error => {
-        this.sendError('error');
+        this.sendMessage('error', 'error');
         this.primaryLoad = false;
         console.log(error);
       }
@@ -225,124 +267,74 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   getDigitalManifestation() {
-    this.busy = true;
-    this.resetVariables();
     this.getterService.getAllDigitalManifestations(this.protokollRequest).subscribe(
       data => {
         if (data.length === 0) {
-          this.sendError('nothingFound');
+          this.sendMessage('error', 'nothingFound');
         } else {
           this.isDigital = true;
           data.forEach(record => {
             this.digitalManifestations.set(record.identifier, record);
+            this.queriedIdentifiers.add(record.identifier);
             this.filterList[record.identifier] = true;
           });
           this.index = data.length - 1;
+          this.collectPrimoResponses();
           this.convertCounterIntoPlotData();
-          this.extendDigitalManifestations();
         }
         this.primaryLoad = false;
-        this.convertCounterIntoPlotData();
-        this.extendDigitalManifestations();
       },
       error => {
-        this.sendError('error');
+        this.sendMessage('error', 'error');
         this.primaryLoad = false;
         console.log(error);
       }
     );
   }
 
-  extendPrintManifestations() {
-    this.printManifestations.forEach(
-      (value, key) => {
-        let isbn = value.bibliographicInformation.isbn.replace(/-/gi, '');
-        if (isbn.trim() !== '') {
-          if (isbn.length > 13) {
-            if (isbn.startsWith('978')) {
-              isbn = isbn.substring(0, 13);
-            } else {
-              isbn = isbn.substring(0, 10);
-            }
+  extendManifestations() {
+    let newPrintData = false;
+    let newDigitalData = false;
+    this.primoData.forEach((value, key) => {
+        if ('digital' === value.type) {
+          if (!this.digitalManifestations.has(value.isbn)) {
+            this.getterService.getDigitalManifestation(value.isbn).subscribe(
+              dm => {
+                if (dm.usage.length > 0) {
+                  this.filterList[dm.identifier] = true;
+                  this.digitalManifestations.set(dm.identifier, dm);
+                  newDigitalData = true;
+                } else {
+                  this.sendMessage('warning', 'noUsage');
+                }
+              }, error => this.sendMessage('alert', 'noConnection'),
+              () => this.convertCounterIntoPlotData()
+            );
           }
-          if (!this.queriedIdentifiers.has(isbn)) {
-            this.queriedIdentifiers.add(isbn);
-            this.getterService.getPrimoResponse(isbn).subscribe(
-              data => {
-                data.electronic.forEach(
-                  record => {
-                    if (!this.queriedIdentifiers.has(record.isbn)) {
-                      this.getterService.getDigitalManifestation(record.isbn).subscribe(
-                        dm => {
-                          this.filterList[dm.identifier] = true;
-                          this.digitalManifestations.set(dm.identifier, dm);
-                        }, error => console.log(error),
-                        () => this.convertCounterIntoPlotData()
-                      );
-                    }
-                  }
-                );
-              }
+        } else if ('print' === value.type) {
+          if (!this.printManifestations.has(value.recordId)) {
+            this.getterService.getPrintManifestation(value.recordId).subscribe(
+              pm => {
+                newPrintData = true;
+                this.printManifestations.set(value.recordId, pm);
+              },
+                  error => this.sendMessage('warning', 'noUsage'),
+              () => this.initializePrintFilterLists()
             );
           }
         }
-      });
-
-  }
-
-  extendDigitalManifestations() {
-    const recordIds = [];
-    this.digitalManifestations.forEach(
-      (value, key) => {
-        if (key.trim() !== '') {
-          recordIds.push(this.getterService.getPrimoResponse(key).subscribe(
-            data => {
-              data.electronic.forEach(
-                record => {
-                  if (!this.queriedIdentifiers.has(record.isbn)) {
-                    this.getterService.getDigitalManifestation(record.isbn).subscribe(
-                      pm => this.digitalManifestations.set(record.isbn, pm),
-                      error => console.log('found no additional electronic resources')
-                    );
-                  }
-                }
-              );
-              data.print.forEach(
-                record => {
-                  if (!this.queriedIdentifiers.has(record.isbn)) {
-                    this.getterService.getPrintManifestation(record.recordId).subscribe(
-                      pm => this.printManifestations.set(record.recordId, pm),
-                      error => console.log('found no printed resources')
-                    );
-                  }
-                }
-              );
-            }));
-        }
       }
     );
-  }
-
-  sendError(error: string) {
-    this.messages.push({
-      severity: 'warn', summary: 'Fehler: ',
-      detail: this.translateService.instant('message.' + error)
-    });
-    this.activePart = '';
-    this.status = 'error';
-    this.busy = false;
   }
 
   initializePrintFilterLists() {
     const uniqueCollections = new Set<string>();
     const uniqueMaterials = new Set<string>();
     this.selectedDigitalUsage = new Map<string, EbookCounter>();
-    this.digitalManifestations.forEach((value, key) => {
-      this.filterList[key] = true;
+    this.digitalManifestations.forEach((value) => {
       this.selectedDigitalManifestations.push(value);
     });
-    this.printManifestations.forEach((value, key) => {
-      this.filterList[key] = true;
+    this.printManifestations.forEach((value) => {
       this.selectedPrintManifestations.push(value);
       value.collections.forEach(collection => {
         if (!uniqueCollections.has(collection)) {
@@ -396,57 +388,59 @@ export class AppComponent implements OnInit, OnDestroy {
     this.statsMaterials = new Map<string, number>();
     this.statsManifestations = new Map<string, number>();
     this.selectedDigitalUsage = new Map<string, EbookCounter>();
-    this.uniqueCollections.forEach(collection => this.statsCollection.set(collection, 0));
-    this.uniqueMaterials.forEach(material => this.statsMaterials.set(material, 0));
-    this.filteredManifestations = new Map<string, PrintManifestation>();
-    this.filteredItems = new Map<string, Item[]>();
-    this.filteredEvents = new Map<string, Event[]>();
-    this.selectedPrintManifestations = [];
     this.selectedDigitalManifestations = [];
-    this.selectedItems = [];
-    this.selectedEvents = [];
-    this.printManifestations.forEach(
-      (value, key) => {
-        this.statsManifestations.set(key, 0);
-        if (this.filterList[key]) {
-          this.selectedPrintManifestations.push(value);
-          this.filteredManifestations[key] = value;
-          const filteredItemsInd: Item[] = [];
-          const filteredEventsInd: Event[] = [];
-          for (const item of value.items) {
-            if (this.filterList[item.collection] && this.filterList[item.material]) {
-              filteredItemsInd.push(item);
-              this.selectedItems.push(item);
-              if (item.deletionDate === '') {
-                let numberCollections = this.statsCollection.get(item.collection);
-                numberCollections++;
-                this.statsCollection.set(item.collection, numberCollections);
-                let numberMaterials = this.statsMaterials.get(item.material);
-                numberMaterials++;
-                this.statsMaterials.set(item.material, numberMaterials);
-                let numberManifestations = this.statsManifestations.get(key);
-                numberManifestations++;
-                this.statsManifestations.set(key, numberManifestations);
-              }
-              for (const event of item.events) {
-                if (!(event.type === 'inventory' || event.type === 'deletion') && event.borrowerStatus === '12') {
-                  continue;
+    if (this.printManifestations.size > 0) {
+      this.uniqueCollections.forEach(collection => this.statsCollection.set(collection, 0));
+      this.uniqueMaterials.forEach(material => this.statsMaterials.set(material, 0));
+      this.filteredManifestations = new Map<string, PrintManifestation>();
+      this.filteredItems = new Map<string, Item[]>();
+      this.filteredEvents = new Map<string, Event[]>();
+      this.selectedPrintManifestations = [];
+      this.selectedItems = [];
+      this.selectedEvents = [];
+      this.printManifestations.forEach(
+        (value, key) => {
+          this.statsManifestations.set(key, 0);
+          if (this.filterList[key]) {
+            this.selectedPrintManifestations.push(value);
+            this.filteredManifestations[key] = value;
+            const filteredItemsInd: Item[] = [];
+            const filteredEventsInd: Event[] = [];
+            for (const item of value.items) {
+              if (this.filterList[item.collection] && this.filterList[item.material]) {
+                filteredItemsInd.push(item);
+                this.selectedItems.push(item);
+                if (item.deletionDate === '') {
+                  let numberCollections = this.statsCollection.get(item.collection);
+                  numberCollections++;
+                  this.statsCollection.set(item.collection, numberCollections);
+                  let numberMaterials = this.statsMaterials.get(item.material);
+                  numberMaterials++;
+                  this.statsMaterials.set(item.material, numberMaterials);
+                  let numberManifestations = this.statsManifestations.get(key);
+                  numberManifestations++;
+                  this.statsManifestations.set(key, numberManifestations);
                 }
-                filteredEventsInd.push(event);
-                this.selectedEvents.push(event);
-                if (event.endEvent != null) {
-                  this.selectedEvents.push(event.endEvent);
+                for (const event of item.events) {
+                  if (!(event.type === 'inventory' || event.type === 'deletion') && event.borrowerStatus === '12') {
+                    continue;
+                  }
+                  filteredEventsInd.push(event);
+                  this.selectedEvents.push(event);
+                  if (event.endEvent != null) {
+                    this.selectedEvents.push(event.endEvent);
+                  }
                 }
               }
             }
+            this.filteredItems[key] = filteredItemsInd;
+            this.filteredEvents[key] = filteredEventsInd;
           }
-          this.filteredItems[key] = filteredItemsInd;
-          this.filteredEvents[key] = filteredEventsInd;
-        }
+        });
+      this.selectedEvents.sort(function (firstEvent, secondEvent) {
+        return firstEvent.time === secondEvent.time ? 0 : +(firstEvent.time > secondEvent.time) || -1;
       });
-    this.selectedEvents.sort(function (firstEvent, secondEvent) {
-      return firstEvent.time === secondEvent.time ? 0 : +(firstEvent.time > secondEvent.time) || -1;
-    });
+    }
   }
 
   updatePlotData() {
@@ -524,11 +518,6 @@ export class AppComponent implements OnInit, OnDestroy {
     this.subscription.unsubscribe();
   }
 
-  goToPrimo(bibliographicInformation: BibliographicInformation): void {
-    const url = 'https://primo.ub.uni-due.de/UDE:UDEALEPH{' + bibliographicInformation.otherIdentifier + '}';
-    window.open(url, '_blank');
-  }
-
   copyLink() {
     const url = location.href.split('?')[0] + '?' + this.protokollRequest.asUrlParamters();
     this.clipboardService.copyFromContent(url);
@@ -553,5 +542,25 @@ export class AppComponent implements OnInit, OnDestroy {
       }
       map.set(classOfEvent, list);
     }
+  }
+
+  getIdentifiers(key: string): string {
+    if (this.printManifestations.has(key)) {
+      return this.printManifestations.get(key).shelfmark;
+    } else if (this.digitalManifestations.has(key)) {
+      return this.digitalManifestations.get(key).identifier;
+    } else {
+      return '';
+    }
+  }
+
+  sendMessage(level: string, error: string) {
+    this.messages.push({
+      severity: level, summary: 'Fehler: ',
+      detail: this.translateService.instant('message.' + error)
+    });
+    this.activePart = '';
+    this.status = level;
+    this.busy = false;
   }
 }

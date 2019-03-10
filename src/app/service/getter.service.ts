@@ -16,13 +16,17 @@ export class GetterService {
 
   getAllDigitalManifestations(protokollRequest: ProtokollRequest): Observable<DigitalManifestation[]> {
     const url = 'assets/data/example_digital_manifestations.json';
-    // const url = appGlobals.counterretrievalUrl + '/getForIsbn?isbn=' + protokollRequest.shelfmark.replace(' ', ';');
+    // const url = appGlobals.counterretrievalUrl + '/ebookcounter/getForIsbn/' + protokollRequest.shelfmark.replace(' ', ';');
     return this.http.get<DigitalManifestation[]>(url);
+  }
+
+  searchPrimoForAutorTitle(authors: string, title: string): Observable<PrimoResponse> {
+    return this.http.get<PrimoResponse>(appGlobals.getterUrl + '/getauthorTitle?authors=' + authors + '&title=' + title);
   }
 
   getDigitalManifestation(identifier: string): Observable<DigitalManifestation> {
     const url = 'assets/data/example_ebookcounter.json';
-    // const url = appGlobals.counterretrievalUrl + '/getForIsbn?isbn=' + identifier;
+    // const url = appGlobals.counterretrievalUrl + '/ebookcounter/getForIsbn/' + identifier;
     return this.http.get<DigitalManifestation>(url);
   }
 
@@ -33,7 +37,8 @@ export class GetterService {
   }
 
   getPrintManifestation(identifier: string): Observable<PrintManifestation> {
-    const url = appGlobals.getterUrl + '/buildFullManifestation/' + identifier.trim();
+    // const url = appGlobals.getterUrl + '/buildFullManifestation/' + identifier.trim();
+    const url = 'assets/data/example_manifestation.json';
     return this.http.get<PrintManifestation>(url);
   }
 
@@ -44,9 +49,7 @@ export class GetterService {
     if (protokollRequest.getType() === 'barcode') {
       url = url + '&barcode';
     }
-    return this.http.get<PrintManifestation[]>(
-       'assets/data/example.json'
-      // url
-      , {headers: new HttpHeaders({timeout: `${60000}`})});
+    url = 'assets/data/example.json';
+    return this.http.get<PrintManifestation[]>(url, {headers: new HttpHeaders({timeout: `${60000}`})});
   }
 }

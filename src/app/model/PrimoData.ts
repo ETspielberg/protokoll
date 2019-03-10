@@ -6,5 +6,8 @@ export class PrimoData {
               public title: string,
               public authors: string,
               public edition: string,
-              public year: string) {}
+              public year: string,
+              public link: string,
+              public thumbnailLink: string,
+              public fulltextLink: string) {}
 }

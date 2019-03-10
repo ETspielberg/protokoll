@@ -94,3 +94,94 @@
   min-width: 100%;
   padding: 5px 5px 0 5px;
 }
+
+.primo-item .ui-md-3 {
+  text-align: center;
+}
+
+.primo-item {
+  box-sizing: border-box;
+  border-bottom: 1px solid #004c93;
+  text-align: left;
+}
+
+.empty-primo-item-index {
+  background-color: #f1f1f1;
+  width: 60px;
+  height: 60px;
+  margin: 36px auto 0 auto;
+  animation: pulse 1s infinite ease-in-out;
+}
+
+.empty-primo-item-image {
+  background-color: #f1f1f1;
+  width: 120px;
+  height: 120px;
+  animation: pulse 1s infinite ease-in-out;
+}
+
+.empty-primo-item-text {
+  background-color: #f1f1f1;
+  height: 18px;
+  animation: pulse 1s infinite ease-in-out;
+}
+
+.title-container {
+  padding: 1em;
+  text-align: right;
+}
+
+.sort-container {
+  text-align: left;
+}
+
+.primo-add-infos {
+  display: inline;
+}
+.primo-type {
+  display: inline;
+  font-size: small;
+}
+
+.primo-title {
+  font-weight: bold;
+  display: inline;
+  font-size: large;
+}
+
+.primo-link {
+   color: #44707B;
+   cursor: pointer;
+}
+
+.primo-link a:link {
+  color: #44707B;
+}
+
+.primo-link a:hover {
+  color: #44707B;
+}
+
+.primo-link a:visited {
+  color: #44707B;
+}
+
+.primo-link a:active {
+  color: #44707B;
+}
+
+@media (max-width: 40em) {
+  .primo-item {
+    text-align: left;
+  }
+}
+
+.primo-identifier {
+  text-align: center;
+  font-weight: bold;
+  font-size: large;
+}
+
+.center-wrapper {
+  text-align: center;
+}

@@ -8,6 +8,8 @@ export class PrimoData {
               public edition: string,
               public year: string,
               public link: string,
-              public thumbnailLink: string,
+              public doi: string,
+              public shelfmarks: string,
+              public linkThumbnail: string,
               public fulltextLink: string) {}
 }

@@ -1,4 +1,4 @@
-import {Component, OnDestroy, OnInit} from '@angular/core';
+import {Component, OnInit} from '@angular/core';
 import {ProtokollRequest} from './model/ProtokollRequest';
 import {PrintManifestation} from './model/PrintManifestation';
 import {GetterService} from './service/getter.service';
@@ -7,7 +7,6 @@ import {Item} from './model/Item';
 import {Event} from './model/Event';
 
 import {ActivatedRoute, Params, Router} from '@angular/router';
-import {Subscription} from 'rxjs/Subscription';
 import 'rxjs/add/operator/switchMap';
 import {MenuItem, MessageService, SelectItem} from 'primeng/api';
 import {TranslateService} from './translate';
@@ -15,6 +14,7 @@ import {ClipboardService} from 'ngx-clipboard';
 import {DigitalManifestation} from './model/DigitalManifestation';
 import {EbookCounter} from './model/EbookCounter';
 import {PrimoData} from './model/PrimoData';
+import {PrimoResponse} from './model/PrimoResponse';
 
 
 @Component({
@@ -23,7 +23,7 @@ import {PrimoData} from './model/PrimoData';
   providers: [GetterService]
 })
 
-export class AppComponent implements OnInit, OnDestroy {
+export class AppComponent implements OnInit {
 
   constructor(public getterService: GetterService,
               private router: Router,
@@ -33,75 +33,46 @@ export class AppComponent implements OnInit, OnDestroy {
               private messageService: MessageService) {
   }
 
-  index = 0;
-
-  public printManifestations: Map<string, PrintManifestation>;
-
-  public digitalManifestations: Map<string, DigitalManifestation>;
-
-  public primoData: Map<string, PrimoData>;
-
+  printManifestations: Map<string, PrintManifestation>;
+  digitalManifestations: Map<string, DigitalManifestation>;
+  primoData: Map<string, PrimoData>;
   printData: Map<string, number[][]>;
-
   digitalData: Map<string, number[][]>;
+  private filteredItems: Map<string, Item[]>;
+  private filteredEvents: Map<string, Event[]>;
+  private filteredManifestations: Map<string, PrintManifestation>;
+  private selectedDigitalUsage: Map<string, EbookCounter>;
+  statsCollection: Map<string, number>;
+  statsMaterials: Map<string, number>;
+  statsManifestations: Map<string, number>;
+
+  selectedPrintManifestations: PrintManifestation[];
+  selectedDigitalManifestations: DigitalManifestation[];
+  selectedEvents: Event[];
+  selectedItems: Item[];
+
+  recKeys: Set<string>;
 
   title: string;
 
-  isPrint = false;
-
-  isDigital = false;
-
   busy: boolean;
+  show: object;
+  primaryLoad = true;
 
   messages: Message[];
 
   protokollRequest: ProtokollRequest;
 
-  public filterList: object;
-
-  private filteredItems: Map<string, Item[]>;
-
-  private filteredEvents: Map<string, Event[]>;
-
-  private filteredManifestations: Map<string, PrintManifestation>;
-
-  private selectedDigitalUsage: Map<string, EbookCounter>;
-
-  private queriedIdentifiers: Set<string>;
+  filterList: object;
 
   public uniqueCollections: string[];
-
   public uniqueMaterials: string[];
-
-  public statsCollection: Map<string, number>;
-
-  public statsMaterials: Map<string, number>;
-
-  public statsManifestations: Map<string, number>;
-
-  public selectedPrintManifestations: PrintManifestation[];
-
-  public selectedDigitalManifestations: DigitalManifestation[];
-
-  public selectedEvents: Event[];
-
-  public selectedItems: Item[];
-
-  primaryLoad = true;
-
-  isElectronic: boolean;
-
-  public show: object;
-
-  private subscription: Subscription;
 
   items: MenuItem[] = [];
 
   activeItem: MenuItem;
 
   activePart: string;
-
-  counterFound: boolean;
 
   status = 'ready';
 
@@ -115,12 +86,10 @@ export class AppComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.translateService.use('de');
-    this.chartDetails.forEach(entry => this.chartDetailsOptions.push(
-      {
-        label: this.translateService.instant(entry),
-        value: entry
-      }
-    ));
+    this.chartDetails.forEach(entry => this.chartDetailsOptions.push({
+      label: this.translateService.instant(entry),
+      value: entry
+    }));
     this.tabs.forEach(entry => {
       return this.items.push({
         label: this.translateService.instant('tab.' + entry),
@@ -133,75 +102,24 @@ export class AppComponent implements OnInit, OnDestroy {
     this.activePart = this.activeItem.id;
     this.protokollRequest = new ProtokollRequest();
     this.route.queryParams.subscribe((params: Params) => {
-        if (params['shelfmark'] !== undefined) {
-          this.protokollRequest.shelfmark = params['shelfmark'];
-          this.protokollRequest.update();
-          if (params['exact'] !== undefined) {
-            this.protokollRequest.exact = ('true' === params['exact']);
-          }
-          if (params['collections'] !== undefined) {
-            this.protokollRequest.collections = params['collections'];
-          }
-          if (params['materials'] !== undefined) {
-            this.protokollRequest.shelfmark = params['materials'];
-          }
-          this.collect();
+      if (params['shelfmark'] !== undefined) {
+        this.protokollRequest.shelfmark = params['shelfmark'];
+        this.protokollRequest.update();
+        if (params['exact'] !== undefined) {
+          this.protokollRequest.exact = ('true' === params['exact']);
         }
+        if (params['collections'] !== undefined) {
+          this.protokollRequest.collections = params['collections'];
+        }
+        if (params['materials'] !== undefined) {
+          this.protokollRequest.shelfmark = params['materials'];
+        }
+        this.collect();
       }
-    );
-  }
-
-  collect() {
-    this.busy = true;
-    this.status = 'collecting';
-    this.reset();
-    this.protokollRequest.update();
-    this.isElectronic = (this.protokollRequest.getType() === 'ebook');
-    if (this.isElectronic) {
-      this.getDigitalManifestation();
-    } else {
-      this.getAllPrintManifestations();
-    }
-    this.filterTabs();
-  }
-
-  collectPrimoResponses() {
-    this.queriedIdentifiers.forEach(
-      identifier => {
-        if (!this.primoData.has(identifier)) {
-          this.getterService.getPrimoResponse(identifier).subscribe(
-            data => {
-              data.electronic.forEach(
-                entry => {
-                  if (!this.primoData.has(entry.isbn)) {
-                    this.primoData.set(entry.isbn, entry);
-                  }
-                }
-              );
-              data.print.forEach(
-                entry => {
-                  if (!this.primoData.has(entry.recordId)) {
-                    this.primoData.set(entry.recordId, entry);
-                  }
-                }
-              );
-              this.extendManifestations();
-            }
-          );
-        }
-      });
-  }
-
-  filterTabs() {
-    if (!this.printData) {
-      this.items.filter((entry) => entry.id !== ('information' || 'items' || 'events' || 'analysis'));
-    } else if (!this.digitalData) {
-      this.items.filter((entry) => entry.id !== ('usage'));
-    }
+    });
   }
 
   reset() {
-    this.queriedIdentifiers = new Set<string>();
     this.primoData = new Map<string, PrimoData>();
     this.printManifestations = new Map<string, PrintManifestation>();
     this.digitalManifestations = new Map<string, DigitalManifestation>();
@@ -209,15 +127,15 @@ export class AppComponent implements OnInit, OnDestroy {
     this.filteredItems = new Map<string, Item[]>();
     this.filteredEvents = new Map<string, Event[]>();
     this.selectedDigitalUsage = new Map<string, EbookCounter>();
+    this.recKeys = new Set<string>();
     this.selectedPrintManifestations = [];
     this.selectedDigitalManifestations = [];
+    this.printData = new Map<string, number[][]>();
+    this.digitalData = new Map<string, number[][]>();
     this.selectedItems = [];
     this.selectedEvents = [];
     this.messages = [];
-    this.isElectronic = false;
     this.activePart = 'graph';
-    this.counterFound = false;
-    this.isPrint = false;
     this.filterList = {};
     this.show = {};
     this.show['editions'] = true;
@@ -226,6 +144,18 @@ export class AppComponent implements OnInit, OnDestroy {
     this.show['usergroups'] = false;
     this.show['filter'] = true;
     this.show['digital'] = true;
+  }
+
+  collect() {
+    this.busy = true;
+    this.status = 'collecting';
+    this.reset();
+    this.protokollRequest.update();
+    if (this.protokollRequest.getType() === 'ebook') {
+      this.getDigitalManifestations();
+    } else {
+      this.getAllPrintManifestations();
+    }
   }
 
   getAllPrintManifestations() {
@@ -237,24 +167,13 @@ export class AppComponent implements OnInit, OnDestroy {
           data.forEach(entry => {
             this.printManifestations.set(entry.titleID, entry);
             this.filterList[entry.titleID] = true;
-            this.queriedIdentifiers.add(entry.titleID);
-            let isbn = entry.bibliographicInformation.isbn.replace(/-/gi, '');
-            if (isbn.trim() !== '') {
-              if (isbn.length > 13) {
-                if (isbn.startsWith('978')) {
-                  isbn = isbn.substring(0, 13);
-                } else {
-                  isbn = isbn.substring(0, 10);
-                }
+            const recKey = entry.bibliographicInformation.recKey;
+            if ('' !== recKey) {
+              if (!this.recKeys.has(recKey)) {
+                this.recKeys.add(recKey);
               }
-              this.queriedIdentifiers.add(isbn);
             }
           });
-          this.index = data.length - 1;
-          this.initializePrintFilterLists();
-          this.collectPrimoResponses();
-
-          this.isPrint = true;
         }
         this.primaryLoad = false;
       },
@@ -262,25 +181,24 @@ export class AppComponent implements OnInit, OnDestroy {
         this.sendMessage('error', 'error');
         this.primaryLoad = false;
         console.log(error);
+      },
+      () => {
+        this.initializePrintFilterLists();
+        this.collectPrimoResponses();
       }
     );
   }
 
-  getDigitalManifestation() {
+  getDigitalManifestations() {
     this.getterService.getAllDigitalManifestations(this.protokollRequest).subscribe(
       data => {
         if (data.length === 0) {
           this.sendMessage('error', 'nothingFound');
         } else {
-          this.isDigital = true;
           data.forEach(record => {
             this.digitalManifestations.set(record.identifier, record);
-            this.queriedIdentifiers.add(record.identifier);
             this.filterList[record.identifier] = true;
           });
-          this.index = data.length - 1;
-          this.collectPrimoResponses();
-          this.convertCounterIntoPlotData();
         }
         this.primaryLoad = false;
       },
@@ -288,37 +206,122 @@ export class AppComponent implements OnInit, OnDestroy {
         this.sendMessage('error', 'error');
         this.primaryLoad = false;
         console.log(error);
+      },
+      () => {
+        this.collectPrimoResponses();
+        this.convertCounterIntoPlotData();
+      }
+    );
+  }
+
+
+  collectPrimoResponses() {
+    this.printManifestations.forEach(
+      (value, key) => {
+        if (!this.primoData.has(key)) {
+          let isbn = value.bibliographicInformation.isbn;
+          if ('' !== isbn) {
+            isbn = isbn.replace(/-/g, '').trim();
+            if (isbn.length > 13) {
+              if (isbn.startsWith('978')) {
+                isbn = isbn.substring(0, 13);
+              } else {
+                isbn = isbn.substring(0, 10);
+              }
+            }
+            this.getterService.getPrimoResponse(isbn).subscribe(
+              data => this.storePrimoResponse(data),
+              error => console.log(error),
+              () => this.extendManifestations()
+            );
+          }
+        }
+      });
+    this.digitalManifestations.forEach(
+      (value, key) => {
+        if (!this.primoData.has(key)) {
+          this.getterService.getPrimoResponse(key).subscribe(
+            data => this.storePrimoResponse(data),
+            error => console.log(error),
+            () => this.extendManifestations()
+          );
+        }
+      });
+  }
+
+  storePrimoResponse(data: PrimoResponse) {
+    data.electronic.forEach(
+      entry => {
+        if (!this.primoData.has(entry.isbn)) {
+          this.primoData.set(entry.isbn, entry);
+        }
+      }
+    );
+    data.print.forEach(
+      entry => {
+        if (!this.primoData.has(entry.recordId)) {
+          this.primoData.set(entry.recordId, entry);
+        }
       }
     );
   }
 
   extendManifestations() {
-    let newPrintData = false;
-    let newDigitalData = false;
     this.primoData.forEach((value, key) => {
-        if ('digital' === value.type) {
-          if (!this.digitalManifestations.has(value.isbn)) {
-            this.getterService.getDigitalManifestation(value.isbn).subscribe(
-              dm => {
-                if (dm.usage.length > 0) {
-                  this.filterList[dm.identifier] = true;
-                  this.digitalManifestations.set(dm.identifier, dm);
-                  newDigitalData = true;
-                } else {
-                  this.sendMessage('warning', 'noUsage');
-                }
-              }, error => this.sendMessage('alert', 'noConnection'),
-              () => this.convertCounterIntoPlotData()
-            );
+        if ('Online Resource' === value.type) {
+          if (!this.digitalManifestations.has(key)) {
+            for (const keyInd of key.split(';')) {
+              if (value.doi !== '') {
+                this.getterService.getDigitalManifestationByIdentifiers(keyInd, value.doi).subscribe(
+                  dm => {
+                    if (dm.usage.length > 0) {
+                      this.filterList[keyInd] = true;
+                      this.digitalManifestations.set(keyInd, dm);
+                      this.convertCounterIntoPlotData();
+                    } else {
+                      this.sendMessage('warn', 'noUsage');
+                    }
+                  }, error => this.sendMessage('error', 'noConnection'));
+              } else {
+                this.getterService.getDigitalManifestation(key).subscribe(
+                  dm => {
+                    if (dm.usage.length > 0) {
+                      this.filterList[keyInd] = true;
+                      this.digitalManifestations.set(keyInd, dm);
+                      this.convertCounterIntoPlotData();
+                    } else {
+                      this.sendMessage('warn', 'noUsage');
+                    }
+                  }, error => this.sendMessage('error', 'noConnection')
+                );
+              }
+            }
           }
-        } else if ('print' === value.type) {
-          if (!this.printManifestations.has(value.recordId)) {
-            this.getterService.getPrintManifestation(value.recordId).subscribe(
+        } else if ('Physical Item' === value.type) {
+          if (!this.recKeys.has(key)) {
+            let shelfmark = value.shelfmarks;
+            if (value.shelfmarks.indexOf(';') > 0) {
+              shelfmark = shelfmark.substring(0, shelfmark.indexOf(';'));
+            }
+            shelfmark = shelfmark.substring(shelfmark.indexOf(' '), shelfmark.length);
+            const protokollrequest = new ProtokollRequest();
+            protokollrequest.shelfmark = shelfmark;
+            protokollrequest.exact = true;
+            this.getterService.getAllPrintManifestations(protokollrequest).subscribe(
               pm => {
-                newPrintData = true;
-                this.printManifestations.set(value.recordId, pm);
+                pm.forEach(entry => {
+                    this.printManifestations.set(entry.titleID, entry);
+                    this.filterList[entry.titleID] = true;
+                    const recKey = entry.bibliographicInformation.recKey;
+                    if ('' !== recKey) {
+                      if (!this.recKeys.has(recKey)) {
+                        this.recKeys.add(recKey);
+                      }
+                    }
+                  }
+                );
               },
-                  error => this.sendMessage('warning', 'noUsage'),
+              error => this.sendMessage('warn', 'noUsage'),
               () => this.initializePrintFilterLists()
             );
           }
@@ -505,17 +508,12 @@ export class AppComponent implements OnInit, OnDestroy {
           }
         }
         this.busy = false;
-        this.counterFound = true;
       }
     });
   }
 
   toggleShow(part: string) {
     this.show[part] = !this.show[part];
-  }
-
-  ngOnDestroy() {
-    this.subscription.unsubscribe();
   }
 
   copyLink() {
@@ -555,11 +553,15 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   sendMessage(level: string, error: string) {
-    this.messages.push({
-      severity: level, summary: 'Fehler: ',
-      detail: this.translateService.instant('message.' + error)
-    });
-    this.activePart = '';
+    this.messages = [];
+    switch (level) {
+      case 'error': {
+        this.messages.push({
+          severity: error, summary: 'Fehler: ',
+          detail: this.translateService.instant('message.' + error)
+        });
+      }
+    }
     this.status = level;
     this.busy = false;
   }

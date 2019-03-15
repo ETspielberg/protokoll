@@ -15,8 +15,8 @@ export class GetterService {
   }
 
   getAllDigitalManifestations(protokollRequest: ProtokollRequest): Observable<DigitalManifestation[]> {
-    const url = 'assets/data/example_digital_manifestations.json';
-    // const url = appGlobals.counterretrievalUrl + '/ebookcounter/getForIsbn/' + protokollRequest.shelfmark.replace(' ', ';');
+    // const url = 'assets/data/example_digital_manifestations.json';
+    const url = appGlobals.counterretrievalUrl + '/ebookcounter/isbns/' + protokollRequest.shelfmark.replace(' ', ';');
     return this.http.get<DigitalManifestation[]>(url);
   }
 
@@ -25,20 +25,26 @@ export class GetterService {
   }
 
   getDigitalManifestation(identifier: string): Observable<DigitalManifestation> {
-    const url = 'assets/data/example_ebookcounter.json';
-    // const url = appGlobals.counterretrievalUrl + '/ebookcounter/getForIsbn/' + identifier;
+    // const url = 'assets/data/example_ebookcounter.json';
+    const url = appGlobals.counterretrievalUrl + '/ebookcounter/isbn/' + identifier;
+    return this.http.get<DigitalManifestation>(url);
+  }
+
+  getDigitalManifestationByIdentifiers(doi: string, isbn: string): Observable<DigitalManifestation> {
+    // const url = 'assets/data/example_ebookcounter.json';
+    const url = appGlobals.counterretrievalUrl + '/ebookcounter/identifiers?doi=' + doi + '?isbn=' + isbn;
     return this.http.get<DigitalManifestation>(url);
   }
 
   getPrimoResponse(identifier: string): Observable<PrimoResponse> {
-    const url = '/assets/data/example_primo_response.json';
-    // const url = appGlobals.getterUrl + '/getPrimoResponse/' + identifier.trim();
+    // const url = '/assets/data/example_primo_response.json';
+    const url = appGlobals.getterUrl + '/getPrimoResponse/' + identifier.trim();
     return this.http.get<PrimoResponse>(url);
   }
 
   getPrintManifestation(identifier: string): Observable<PrintManifestation> {
-    // const url = appGlobals.getterUrl + '/buildFullManifestation/' + identifier.trim();
-    const url = 'assets/data/example_manifestation.json';
+    const url = appGlobals.getterUrl + '/buildFullManifestation?identifier=' + identifier.trim();
+    // const url = 'assets/data/example_manifestation.json';
     return this.http.get<PrintManifestation>(url);
   }
 
@@ -49,7 +55,7 @@ export class GetterService {
     if (protokollRequest.getType() === 'barcode') {
       url = url + '&barcode';
     }
-    url = 'assets/data/example.json';
+    // url = 'assets/data/example.json';
     return this.http.get<PrintManifestation[]>(url, {headers: new HttpHeaders({timeout: `${60000}`})});
   }
 }

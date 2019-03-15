@@ -59,11 +59,11 @@
 <div id="wrapper" *ngIf="!primaryLoad" class="ui-g">
   <div class="ui-g content">
     <div class="ui-md-2 ui-g-12 ui-g-nopad" *ngIf="show['filter']">
-      <div *ngIf="printData || digitalData">
+      <div *ngIf="(printData.size +  digitalData.size) > 0">
         <p-scrollPanel [style]="{width: '100%', height: '100%'}">
           <h3  *ngIf="printManifestations.size > 0" (click)="toggleShow('editions')">{{'editions' | translate}} <i
             [ngClass]="show['editions'] ? 'pi pi-caret-down' : 'pi pi-caret-right'"></i></h3>
-          <div *ngIf="show['editions']" class="ui-g">
+          <div *ngIf="show['editions'] && printManifestations.size > 0" class="ui-g">
             <div *ngFor="let m of printManifestations | keyvalue" class="ui-g-12">
               <p-checkbox [(ngModel)]="filterList[m.value.titleID]" binary="true" (onChange)="update()"
                           label="{{m.value.edition}}. Auflage: {{m.value.shelfmark}}   <{{statsManifestations.get(m.value.titleID)}} Ex.>"
@@ -73,7 +73,7 @@
           </div>
           <h3 *ngIf="printManifestations.size > 0" (click)="toggleShow('collections')">{{'collections' | translate}} <i
             [ngClass]="show['collections'] ? 'pi pi-caret-down' : 'pi pi-caret-right'"></i></h3>
-          <div *ngIf="show['collections']" class="ui-g">
+          <div *ngIf="show['collections'] && printManifestations.size > 0" class="ui-g">
             <div *ngFor="let m of uniqueCollections" class="ui-g-12">
               <p-checkbox [(ngModel)]="filterList[m]" binary="true" (onChange)="update()"
                           label="{{m}} <{{statsCollection.get(m)}} Ex.>"></p-checkbox>
@@ -81,7 +81,7 @@
           </div>
           <h3 *ngIf="printManifestations.size > 0" (click)="toggleShow('materials')">{{'materials' | translate}} <i
             [ngClass]="show['materials'] ? 'pi pi-caret-down' : 'pi pi-caret-right'"></i></h3>
-          <div *ngIf="show['materials']" class="ui-g">
+          <div *ngIf="show['materials'] && printManifestations.size > 0" class="ui-g">
             <div *ngFor="let m of uniqueMaterials" class="ui-g-12">
               <p-checkbox [(ngModel)]="filterList[m]" binary="true" (onChange)="update()"
                           label="{{'material.' + m | translate}} <{{statsMaterials.get(m)}} Ex.>"></p-checkbox>
@@ -136,9 +136,9 @@
           </div>
         </div>
       </form>
-      <p-messages [(value)]="messages" [closable]="false"></p-messages>
+      <p-messages [(value)]="messages"></p-messages>
 
-      <div class="ui-g" *ngIf="(isPrint && selectedItems.length > 0) || counterFound">
+      <div class="ui-g" *ngIf="(printData.size + digitalData.size) > 0">
         <p-tabMenu [model]="items" [activeItem]="items[0]" class="ui-fluid"></p-tabMenu>
         <div class="ui-g-12 ui-md-12 ui-lg-12 tile-bottom">
           <h2>{{'title.' + activePart | translate}}</h2>
@@ -152,13 +152,13 @@
                   </div>
                 </div>
               </p-header> -->
-              <ng-template let-primo pTemplate="item" let-index="index">
+              <ng-template let-primo pTemplate="item">
                 <div class="ui-g primo-item">
                   <div class="ui-g-2 ui-md-2 primo-identifier">
                     <span>{{getIdentifiers(primo.key)}}</span>
                   </div>
                   <div class="ui-g-2 ui-md-2">
-                    <img src="{{primo.value.thumbnailLink}}">
+                    <img src="{{primo.value.linkThumbnail}}">
                   </div>
                   <div class="ui-g-8 ui-md-8">
                     <div class="ui-g">
